@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(Select-Object Name:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(move:*)",
+      "WebSearch",
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "ask": []

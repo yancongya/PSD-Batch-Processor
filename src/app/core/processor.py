@@ -149,9 +149,15 @@ class BatchProcessor:
 
             # 确保连接到 Photoshop
             if not self.controller.is_connected():
+                self.logger.warning(f"Photoshop 连接断开，尝试重新连接...")
                 connect_success, connect_msg = self.controller.connect(launch_if_needed=True)
                 if not connect_success:
-                    return False, f"无法连接 Photoshop: {connect_msg}"
+                    error_msg = f"Photoshop 连接失败: {connect_msg}"
+                    self.logger.error(error_msg)
+                    # 标记所有剩余文件为失败
+                    file_item.set_status(FileStatus.FAILED, error_msg)
+                    self._notify_status(file_item.file_name, f"❌ {error_msg}")
+                    return False, error_msg
 
             # 打开 PSD 文件
             open_success, open_msg = self.controller.open_document(str(file_item.path))
@@ -262,6 +268,15 @@ class BatchProcessor:
                         self.total_success += 1
                     else:
                         self.total_failed += 1
+                        # 如果是Photoshop连接失败，停止整个处理
+                        if "Photoshop 连接失败" in msg or "无法连接 Photoshop" in msg:
+                            self.logger.error(f"Photoshop 连接失败，停止批量处理")
+                            # 标记剩余文件为失败
+                            for remaining_file in pending_files[i:]:
+                                remaining_file.set_status(FileStatus.FAILED, "Photoshop 连接失败，处理中止")
+                                self.total_failed += 1
+                                self.total_processed += 1
+                            break
 
             # 多线程处理（实验性）
             else:
