@@ -70,7 +70,12 @@ def install_pip_package(package, version=None):
 def check_installed(package):
     """检查包是否已安装"""
     try:
-        __import__(package)
+        if package == "PyQt-Fluent-Widgets":
+            from PyQtFluentWidgets import FluentWindow
+        elif package == "pywin32":
+            import win32com.client
+        else:
+            __import__(package)
         return True
     except ImportError:
         return False
