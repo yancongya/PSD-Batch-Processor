@@ -35,11 +35,12 @@ class ProcessingThread(QThread):
     log_signal = pyqtSignal(str, str)  # level, message
     finished_signal = pyqtSignal(bool, str)  # success, message
 
-    def __init__(self, processor, files, script_path, parent=None):
+    def __init__(self, processor, files, script_path, settings, parent=None):
         super().__init__(parent)
         self.processor = processor
         self.files = files
         self.script_path = script_path
+        self.settings = settings
 
     def run(self):
         """执行处理"""
@@ -51,13 +52,18 @@ class ProcessingThread(QThread):
                 on_finished=self._on_finished
             )
 
-            # 执行批量处理
-            success = self.processor.process_batch(self.files, self.script_path)
+            # 将文件添加到处理器的文件列表
+            self.processor.file_list.clear()
+            for file_path in self.files:
+                self.processor.file_list.add_file(file_path)
 
-            if success:
-                self.finished_signal.emit(True, "处理完成")
+            # 执行批量处理
+            success, failed, elapsed = self.processor.process_batch(self.script_path)
+
+            if success > 0 or failed == 0:
+                self.finished_signal.emit(True, f"处理完成: 成功 {success} 个, 失败 {failed} 个")
             else:
-                self.finished_signal.emit(False, "处理失败")
+                self.finished_signal.emit(False, f"处理失败: 成功 {success} 个, 失败 {failed} 个")
 
         except Exception as e:
             self.log_signal.emit("error", f"处理异常: {str(e)}")
@@ -928,6 +934,7 @@ class FluentMainWindowV2(FluentWindow):
             self.processor,
             self.file_list,
             script_path,
+            self.settings,
             self
         )
 
