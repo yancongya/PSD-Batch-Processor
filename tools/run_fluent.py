@@ -39,7 +39,7 @@ def install_dependencies():
         subprocess.run(["pip", "install", "PyQt5"], check=True)
 
     try:
-        from PyQtFluentWidgets import FluentWindow
+        from qfluentwidgets import FluentWindow
         print("[OK] PyQt-Fluent-Widgets 已安装")
     except ImportError:
         print("[WARNING] PyQt-Fluent-Widgets 未安装，正在安装...")

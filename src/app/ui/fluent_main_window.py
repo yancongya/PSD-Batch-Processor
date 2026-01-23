@@ -9,14 +9,13 @@ from typing import List, Optional
 
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QFileDialog, QMessageBox
-from PyQtFluentWidgets import (
+from qfluentwidgets import (
     FluentWindow, NavigationInterface, CardWidget, SubtitleLabel,
     PrimaryPushButton, PushButton, LineEdit, ComboBox, SpinBox,
     TextEdit, TreeWidget, TreeWidgetItem, ProgressRing, InfoBar,
     InfoBarPosition, MessageBox, StrongBodyLabel, BodyLabel,
-    PrimaryToolButton, ToolButton, FluentIcon
+    PrimaryToolButton, ToolButton, FluentIcon, NavigationItemPosition
 )
-from qfluentwidgets import NavigationItemPosition
 
 from app.config.settings import get_settings, init_settings
 from app.core.processor import BatchProcessor

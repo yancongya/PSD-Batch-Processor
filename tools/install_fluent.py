@@ -71,7 +71,7 @@ def check_installed(package):
     """检查包是否已安装"""
     try:
         if package == "PyQt-Fluent-Widgets":
-            from PyQtFluentWidgets import FluentWindow
+            from qfluentwidgets import FluentWindow
         elif package == "pywin32":
             import win32com.client
         else:

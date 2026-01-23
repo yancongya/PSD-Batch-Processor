@@ -21,7 +21,7 @@ def test_imports():
         return False
 
     try:
-        from PyQtFluentWidgets import FluentWindow
+        from qfluentwidgets import FluentWindow
         print("  [OK] PyQt-Fluent-Widgets")
     except ImportError as e:
         print(f"  [ERROR] PyQt-Fluent-Widgets: {e}")

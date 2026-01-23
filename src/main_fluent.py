@@ -24,7 +24,7 @@ def check_dependencies():
 
     # 检查 PyQt-Fluent-Widgets
     try:
-        from PyQtFluentWidgets import FluentWindow
+        from qfluentwidgets import FluentWindow
     except ImportError:
         missing_deps.append("PyQt-Fluent-Widgets")
 
