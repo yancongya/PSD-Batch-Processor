@@ -8,11 +8,11 @@ from pathlib import Path
 from typing import List, Optional
 
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QFileDialog, QMessageBox
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QFileDialog, QMessageBox, QTreeWidgetItem
 from qfluentwidgets import (
     FluentWindow, NavigationInterface, CardWidget, SubtitleLabel,
     PrimaryPushButton, PushButton, LineEdit, ComboBox, SpinBox,
-    TextEdit, TreeWidget, TreeWidgetItem, ProgressRing, InfoBar,
+    TextEdit, TreeWidget, ProgressRing, InfoBar,
     InfoBarPosition, MessageBox, StrongBodyLabel, BodyLabel,
     PrimaryToolButton, ToolButton, FluentIcon, NavigationItemPosition
 )
@@ -132,18 +132,6 @@ class FluentMainWindow(FluentWindow):
         self.addSubInterface(self.home_interface, FluentIcon.HOME, "主页")
         self.addSubInterface(self.settings_interface, FluentIcon.SETTING, "设置")
         self.addSubInterface(self.log_interface, FluentIcon.DOCUMENT, "日志")
-
-        # 添加到右侧工具栏
-        self.navigationInterface.addSeparator()
-
-        # 主题切换按钮
-        self.theme_button = ToolButton(FluentIcon.BRIGHTNESS, self)
-        self.theme_button.setToolTip("切换主题")
-        self.theme_button.clicked.connect(self._toggle_theme)
-        self.navigationInterface.addWidget(
-            self.theme_button,
-            position=NavigationItemPosition.BOTTOM
-        )
 
     def _setup_home_interface(self):
         """设置主页界面"""
@@ -302,7 +290,7 @@ class FluentMainWindow(FluentWindow):
 
         # 打开文件夹按钮
         open_btn = PushButton("打开输出文件夹")
-        open_btn.setIcon(FluentIcon.FOLDER_OPEN)
+        open_btn.setIcon(FluentIcon.FOLDER)
         open_btn.setMinimumHeight(45)
         open_btn.clicked.connect(self._open_output_folder)
         layout.addWidget(open_btn)
@@ -623,7 +611,7 @@ class FluentMainWindow(FluentWindow):
         """添加文件到树形列表"""
         path = Path(file_path)
 
-        item = TreeWidgetItem(self.file_tree)
+        item = QTreeWidgetItem(self.file_tree)
         item.setText(0, path.name)
         item.setText(1, "待处理")
         item.setText(2, str(path))
