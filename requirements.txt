@@ -1,9 +1,6 @@
 # PSD Batch Processor Dependencies
 
-# GUI Framework - CustomTkinter (current)
-customtkinter>=5.2.2
-
-# GUI Framework - PyQt-Fluent-Widgets (new)
+# GUI Framework - PyQt-Fluent-Widgets
 PyQt-Fluent-Widgets>=1.1.0
 PyQt5>=5.15.0
 

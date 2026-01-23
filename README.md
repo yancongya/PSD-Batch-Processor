@@ -3,40 +3,37 @@
 
 一个用于批量处理 PSD 文件的 Python 应用程序，支持通过 Photoshop 脚本自动化处理。
 
-## 🎨 界面版本选择
+## 🎨 界面版本
 
-本项目提供两种界面版本，您可以根据需求选择：
+本项目已全面升级为 **PyQt-Fluent-Widgets** 版本，提供现代化的 Fluent Design 界面。
 
-| 特性 | CustomTkinter 版本 | PyQt-Fluent-Widgets 版本 |
+### 版本对比
+
+| 特性 | CustomTkinter (已弃用) | PyQt-Fluent-Widgets (推荐) |
 |------|-------------------|-------------------------|
 | **界面风格** | 现代化，类似 Material Design | Fluent Design (Windows 11 风格) |
 | **导航方式** | 单页面布局 | 多页面导航 (侧边栏) |
 | **控件丰富度** | 基础控件 | 丰富的高级控件 |
 | **依赖大小** | 较小 (~50MB) | 较大 (~80MB) |
 | **启动速度** | 快 (~1-2秒) | 中等 (~2-3秒) |
-| **推荐场景** | 轻量级、快速启动 | 追求美观、完整功能 |
+| **推荐场景** | ❌ 已停止维护 | ✅ 完整功能、美观界面 |
 
 ### 快速启动
 
-#### CustomTkinter 版本（轻量级）
-```bash
-# Windows
-tools\run.bat
-
-# 或直接运行
-python src\main.py
-```
-
-#### PyQt-Fluent-Widgets 版本（现代化界面）
+#### PyQt-Fluent-Widgets 版本（推荐）
 ```bash
 # 安装依赖（首次使用）
 python tools\install_fluent.py
 
 # 启动应用
 python tools\run_fluent.py
+
+# 或直接运行
+python src\main_fluent.py
 ```
 
-详细说明：[PyQt-Fluent-Widgets 版本指南](README_FLUENT.md)
+#### 传统版本（已弃用）
+CustomTkinter 版本已备份为 `src/app/ui/main_window.py.backup`，不再维护。
 
 ## ✨ 功能特性
 
@@ -48,6 +45,34 @@ python tools\run_fluent.py
 - 📊 **实时进度**: 显示处理进度和状态
 - 🌙 **主题支持**: 深色/浅色主题切换
 - 📋 **完整日志**: 实时日志查看和保存
+- 🗂️ **多页面布局**: 文件处理、脚本管理、设置、日志四页分离
+
+## 🖥️ 界面预览
+
+PyQt-Fluent-Widgets V2 版本采用四页布局，功能分离更清晰：
+
+### 1. 文件处理页 (主页)
+- 添加文件/文件夹
+- 选择脚本和并发数
+- 开始/停止处理
+- 实时进度显示
+
+### 2. 脚本管理页
+- 浏览所有可用脚本
+- 支持子目录结构
+- 脚本说明和路径显示
+- 一键刷新脚本列表
+
+### 3. 设置页
+- Photoshop 路径配置
+- 脚本目录和备份目录设置
+- 并发数调整
+- 主题切换
+
+### 4. 日志页
+- 完整处理日志
+- 日志清空和保存
+- 实时更新显示
 
 ## 🚀 快速开始
 
@@ -58,39 +83,28 @@ python tools\run_fluent.py
 
 ### 2. 安装依赖
 
-#### 基础依赖（两个版本都需要）
+#### 自动安装（推荐）
+```bash
+# 自动安装所有依赖（PyQt5 + PyQt-Fluent-Widgets + pywin32）
+python tools\install_fluent.py
+```
+
+#### 手动安装
 ```bash
 pip install -r requirements.txt
 ```
 
-#### PyQt-Fluent-Widgets 版本（可选）
-```bash
-# 自动安装所有依赖
-python tools\install_fluent.py
-
-# 或手动安装
-pip install PyQt5 PyQt-Fluent-Widgets
-```
-
 ### 3. 运行程序
 
-#### CustomTkinter 版本
 ```bash
-# Windows
-tools\run.bat
-
-# 或直接运行
-python src\main.py
-```
-
-#### PyQt-Fluent-Widgets 版本
-```bash
-# Windows
+# Windows - 推荐方式
 python tools\run_fluent.py
 
 # 或直接运行
 python src\main_fluent.py
 ```
+
+> 💡 **提示**: 首次运行会自动检查并安装缺失的依赖
 
 ### 4. 基本使用
 1. 设置 Photoshop 路径
@@ -115,10 +129,10 @@ PSD Batch Processor/
 
 ## 📚 文档
 
-### 快速入门
-- [快速开始指南](docs/guides/quick_start.md)
-- [从这里开始](docs/guides/START_HERE.txt)
-- [快速参考](docs/guides/QUICK_REFERENCE.txt)
+### PyQt-Fluent-Widgets 版本
+- [快速开始指南](docs/FLUENT_QUICK_START.md)
+- [版本指南](docs/FLUENT_VERSION_GUIDE.md)
+- [界面说明](docs/FLUENT_INTERFACE_GUIDE.md)
 
 ### 脚本开发
 - [模板脚本](scripts/templates/auto_mode_template.jsx)
@@ -127,6 +141,7 @@ PSD Batch Processor/
 
 ### 高级功能
 - [自动模式指南](docs/guides/AUTO_MODE_GUIDE.md)
+- [打包指南](docs/PACKAGING_GUIDE.md)
 
 ## 🔧 核心组件
 

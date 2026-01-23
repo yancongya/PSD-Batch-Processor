@@ -81,10 +81,10 @@ def main():
     os.environ["QT_SCALE_FACTOR"] = "1"
 
     try:
-        # 导入并启动应用
-        from app.ui.fluent_main_window import main as run_fluent_app
+        # 导入并启动应用（使用 V2 版本）
+        from app.ui.fluent_main_window_v2 import main as run_fluent_app
 
-        print("[INFO] 正在启动 PyQt-Fluent-Widgets 版本...")
+        print("[INFO] 正在启动 PyQt-Fluent-Widgets V2 版本...")
         print("[INFO] 这可能需要几秒钟时间...")
         print()
 
