@@ -77,9 +77,12 @@ class ProcessingThread(QThread):
         """状态更新回调"""
         self.log_signal.emit("info", f"{filename}: {status}")
 
-    def _on_finished(self, success, message):
+    def _on_finished(self, success, failed, elapsed):
         """完成回调"""
-        self.finished_signal.emit(success, message)
+        if success > 0:
+            self.finished_signal.emit(True, f"处理完成: 成功 {success} 个, 失败 {failed} 个, 耗时 {elapsed:.2f}s")
+        else:
+            self.finished_signal.emit(False, f"处理失败: 成功 {success} 个, 失败 {failed} 个, 耗时 {elapsed:.2f}s")
 
 
 class FluentMainWindowV2(FluentWindow):
