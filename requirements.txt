@@ -1,0 +1,14 @@
+# PSD Batch Processor Dependencies
+
+# GUI Framework
+customtkinter>=5.2.2
+
+# Photoshop COM Control
+pywin32>=306
+
+# Image Processing (optional, for thumbnail previews)
+pillow>=9.0.0
+
+# Development Tools (optional)
+# pytest>=7.0.0
+# black>=23.0.0

@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(tree:*)",
+      "Bash(findstr:*)",
+      "Bash(dir scripts*.jsx /S:*)",
+      "Bash(dir distPSDBatchProcessor:*)",
+      "Bash(dir \"dist\\PSDBatchProcessor\":*)",
+      "Bash(toolsbuild.bat:*)",
+      "Bash(dir:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

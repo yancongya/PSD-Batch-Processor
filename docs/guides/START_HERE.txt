@@ -1,0 +1,178 @@
+========================================
+PSD Batch Processor - Start Here
+========================================
+
+QUICK START
+===========
+
+1. Install Dependencies
+   ---------------------
+   Double-click: install.bat
+
+   If you see errors about Python not found:
+   - Install Python 3.10+ from python.org
+   - Make sure "Add Python to PATH" is checked during installation
+   - Restart your computer after installation
+
+2. Start the Application
+   ----------------------
+   Double-click: run.bat
+
+   Or double-click: main.py
+
+   Or open Command Prompt and run:
+   cd "F:\插件脚本开发\PSD Batch Processor"
+   python main.py
+
+3. First Time Setup
+   -----------------
+   When the application opens:
+
+   a) Set Photoshop Path
+      - Click "Browse..." next to Photoshop path
+      - Find Photoshop.exe (usually in C:\Program Files\Adobe\...)
+      - Example: C:\Program Files\Adobe\Adobe Photoshop 2025\Photoshop.exe
+
+   b) Set Script Directory
+      - Default is "scripts/" (already set)
+      - Click "Refresh" to scan for .jsx files
+
+   c) Set Backup Directory
+      - Default is "backups/" (already set)
+
+   d) Click "Save Configuration"
+
+   e) Choose Theme (optional)
+      - Dark or Light
+
+   f) Set Workers (optional)
+      - Recommended: 1 (most stable)
+
+4. Add Files
+   ----------
+   - Click "Add Files" to select PSD files
+   - Or click "Add Folders" to select a folder (scans for PSD files)
+   - Files will appear in the list
+
+5. Select Script
+   --------------
+   - Choose a script from the dropdown
+   - Try "example_flatten_image.jsx" first
+
+   Available scripts:
+   * example_convert_to_grayscale.jsx - Convert to grayscale
+   * example_flatten_image.jsx        - Flatten layers
+   * example_resize_50_percent.jsx    - Resize to 50%
+
+6. Start Processing
+   -----------------
+   - Click "▶️ Start Processing"
+   - Confirm when prompted
+   - Wait for completion
+   - Check logs and results
+
+7. View Results
+   -------------
+   - Check the log window for progress
+   - See file status change in the list
+   - Click "📂 Open Backup Folder" to view backups
+   - Check the summary popup when done
+
+========================================
+
+TROUBLESHOOTING
+===============
+
+Problem: "Python is not recognized as an internal command"
+Solution:
+  1. Install Python from https://www.python.org/downloads/
+  2. During installation, check "Add Python to PATH"
+  3. Restart Command Prompt or computer
+
+Problem: Cannot connect to Photoshop
+Solution:
+  1. Make sure Photoshop is installed
+  2. Check the Photoshop path in settings
+  3. Try manually opening Photoshop first
+
+Problem: Script execution fails
+Solution:
+  1. Check the error message in the log window
+  2. Test the script manually in Photoshop
+  3. Make sure the script calls doc.save()
+
+Problem: No .jsx files appear in dropdown
+Solution:
+  1. Click the "Refresh" button
+  2. Check if scripts directory exists
+  3. Verify .jsx files are in the scripts folder
+
+========================================
+
+FILE LOCATIONS
+==============
+
+Main Program:
+  F:\插件脚本开发\PSD Batch Processor\main.py
+
+Backup Files:
+  F:\插件脚本开发\PSD Batch Processor\backups\
+
+Log Files:
+  F:\插件脚本开发\PSD Batch Processor\logs\
+
+Configuration:
+  F:\插件脚本开发\PSD Batch Processor\config.json (created after first run)
+
+JSX Scripts:
+  F:\插件脚本开发\PSD Batch Processor\scripts\
+
+========================================
+
+NEXT STEPS
+==========
+
+After successful first run:
+1. Read README.md for detailed documentation
+2. Try different scripts
+3. Create your own JSX scripts
+4. Explore the logs folder for detailed logs
+
+========================================
+
+NEED HELP?
+==========
+
+1. Check the log window for error messages
+2. Read README.md for complete documentation
+3. Check logs/ folder for detailed logs
+4. Verify all dependencies are installed
+
+========================================
+
+IMPORTANT WARNINGS
+==================
+
+⚠️  BACKUP FIRST
+    The program creates backups, but always backup important files
+    before batch processing.
+
+⚠️  SINGLE-THREADED
+    Use Workers=1 for best stability. Photoshop may have issues
+    with multiple concurrent operations.
+
+⚠️  SAVE IN SCRIPTS
+    Your JSX scripts MUST call doc.save() to save changes.
+    Example: doc.save();
+
+========================================
+
+START NOW
+=========
+
+1. Double-click: install.bat
+2. Wait for installation to complete
+3. Double-click: run.bat
+4. Follow the steps above
+
+========================================

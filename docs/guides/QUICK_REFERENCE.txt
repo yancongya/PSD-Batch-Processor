@@ -1,0 +1,138 @@
+========================================
+PSD Batch Processor - Quick Reference
+========================================
+
+🚀 QUICK START (3 Steps)
+
+1. Install Dependencies
+   Double-click: install.bat
+
+2. Start Application
+   Double-click: run.bat
+   Or: python main.py
+
+3. Usage Flow
+   Configure → Add Files → Select Script → Start Processing
+
+========================================
+
+📋 COMMON COMMANDS
+
+# Install dependencies
+pip install customtkinter pywin32
+
+# Run environment test
+python test_env.py
+
+# Run quick test
+python quick_test.py
+
+# Start main application
+python main.py
+
+========================================
+
+📁 KEY FILES
+
+main.py                    # Main program entry
+run.bat                   # Run script (English)
+install.bat              # Installation script
+requirements.txt         # Dependencies list
+README.md                # Complete documentation
+QUICK_REFERENCE.txt      # This file
+
+========================================
+
+📂 DIRECTORY STRUCTURE
+
+app/          # Application code
+utils/        # Utility modules
+scripts/      # JSX scripts
+backups/      # Backup files (auto-generated)
+logs/         # Log files (auto-generated)
+docs/         # Documentation
+
+========================================
+
+⚠️ IMPORTANT NOTES
+
+1. Photoshop must be installed
+2. First use requires Photoshop path configuration
+3. Program automatically backs up source files
+4. Single-threaded mode recommended (Workers=1)
+5. JSX scripts must call doc.save()
+
+========================================
+
+❓ FAQ
+
+Q: "Python is not recognized as an internal command"
+A: Install Python and add it to PATH
+
+Q: Cannot connect to Photoshop
+A: Check if Photoshop path is correct
+
+Q: Script execution failed
+A: Check error messages in log window
+
+Q: Where are backup files?
+A: In backups/ folder, named with timestamp
+
+========================================
+
+📚 DOCUMENTATION
+
+README.md                # Complete usage guide
+docs/quick_start.md      # Quick start guide
+docs/project_overview.md # Project overview
+QUICK_REFERENCE.txt      # This quick reference
+
+========================================
+
+🎯 CORE FEATURES
+
+✅ Automatic backup (with timestamp)
+✅ Photoshop COM control
+✅ Batch file processing
+✅ JSX script execution
+✅ Real-time progress feedback
+✅ Colorful log output
+✅ Configuration persistence
+✅ Theme switching (dark/light)
+
+========================================
+
+🛠️ TECH STACK
+
+Python 3.10+          # Programming language
+customtkinter 5.2.2+  # GUI framework
+pywin32 306+          # COM control
+JSON                  # Configuration storage
+
+========================================
+
+📞 SUPPORT
+
+1. View logs: logs/ directory
+2. Read docs: README.md
+3. Quick guide: QUICK_REFERENCE.txt
+4. Project status: docs/development_summary.md
+
+========================================
+
+✨ PROJECT STATUS
+
+Version: v1.0.0 (MVP)
+Completion: 100%
+Date: 2026-01-23
+Status: ✅ Complete and ready to use
+
+========================================
+
+START APPLICATION
+
+Option 1: Double-click run.bat
+Option 2: Double-click main.py
+Option 3: Command line: python main.py
+
+========================================
