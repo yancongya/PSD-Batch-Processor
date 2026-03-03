@@ -36,9 +36,8 @@ class BatchProcessor:
         self.total_success = 0
         self.total_failed = 0
         
-        # 缓存清理设置
-        self.cache_clean_interval = 5  # 每处理N个文件清理一次缓存
-        self._files_since_last_clean = 0
+        # 空间阈值设置（GB）
+        self.space_threshold_gb = 10  # 当暂存盘剩余空间低于此值时，暂停处理并清理缓存
         
         # 总文件数（用于进度计算）
         self._total_files = 0
@@ -67,6 +66,61 @@ class BatchProcessor:
                 self._on_progress(current, total, message, self._total_files)
             else:
                 self._on_progress(current, total, message, total)
+
+    def _check_scratch_disk_space(self) -> Tuple[bool, float]:
+        """检查暂存盘剩余空间
+        
+        Returns:
+            (是否低于阈值, 剩余空间GB)
+        """
+        try:
+            success, info = self.controller.get_scratch_disks_info()
+            if success:
+                # 解析信息获取剩余空间
+                import re
+                match = re.search(r'(\d+\.?\d*)GB\s*可用', info)
+                if match:
+                    free_gb = float(match.group(1))
+                    is_below_threshold = free_gb < self.space_threshold_gb
+                    return is_below_threshold, free_gb
+        except Exception as e:
+            self.logger.warning(f"检查暂存盘空间失败: {e}")
+        
+        return False, 0.0
+
+    def _clean_cache_if_needed(self) -> bool:
+        """如果空间不足，清理缓存
+        
+        Returns:
+            是否执行了清理
+        """
+        is_below_threshold, free_gb = self._check_scratch_disk_space()
+        
+        if is_below_threshold:
+            self.logger.warning(f"暂存盘剩余空间 {free_gb:.1f}GB 低于阈值 {self.space_threshold_gb}GB，开始清理缓存...")
+            
+            # 通知UI暂停
+            if self._on_progress:
+                self._on_progress(0, 1, f"暂存盘空间不足 ({free_gb:.1f}GB < {self.space_threshold_gb}GB)，正在清理缓存...", False)
+            
+            # 执行清理
+            success, msg = self.controller.purge_cache()
+            if success:
+                self.logger.success("缓存清理完成")
+                
+                # 重新检查空间
+                is_below_threshold, new_free_gb = self._check_scratch_disk_space()
+                if not is_below_threshold:
+                    self.logger.success(f"清理后暂存盘剩余空间: {new_free_gb:.1f}GB")
+                else:
+                    self.logger.warning(f"清理后暂存盘剩余空间仍不足: {new_free_gb:.1f}GB")
+                
+                return True
+            else:
+                self.logger.error(f"缓存清理失败: {msg}")
+                return False
+        
+        return False
 
     def _notify_status(self, file_name: str, status: str):
         """通知状态更新"""
@@ -160,6 +214,9 @@ class BatchProcessor:
         start_time = time.time()
 
         try:
+            # 0. 检查暂存盘空间，如果不足则清理
+            self._clean_cache_if_needed()
+
             # 1. 备份文件
             self._notify_status(file_item.file_name, "正在备份...")
             backup_success, backup_msg = self.backup_file(file_item, backup_folder)
@@ -233,22 +290,13 @@ class BatchProcessor:
 
             self._notify_progress(3, 4, f"{file_item.file_name} - 处理完成", is_file_stage=True)
 
-            # 清理Photoshop缓存，防止暂存盘满（每N个文件清理一次）
-            self._files_since_last_clean += 1
-            if self._files_since_last_clean >= self.cache_clean_interval:
-                self.controller.purge_cache()
-                self.logger.info(f"已自动清理缓存（每 {self.cache_clean_interval} 个文件）")
-                self._files_since_last_clean = 0
-                
-                # 缓存清理后，Photoshop 连接可能会断开，尝试重新连接
-                if not self.controller.is_connected():
-                    self.logger.warning(f"缓存清理后连接断开，尝试重新连接...")
-                    reconnect_success, reconnect_msg = self.controller.connect(launch_if_needed=False)
-                    if not reconnect_success:
-                        self.logger.warning(f"缓存清理后无法重新连接 Photoshop: {reconnect_msg}")
-                        # 不返回失败，因为缓存清理失败不影响文件处理结果
-                    else:
-                        self.logger.info("已重新连接到 Photoshop")
+            # 关闭文档（保存更改）
+            self._notify_progress(2, 4, f"{file_item.file_name} - 保存文件中...", is_file_stage=True)
+            close_success, close_msg = self.controller.close_document(save=True)
+            if not close_success:
+                self.logger.warning(f"关闭文档时出现问题: {close_msg}")
+
+            self._notify_progress(3, 4, f"{file_item.file_name} - 处理完成", is_file_stage=True)
 
             elapsed = time.time() - start_time
             file_item.process_time = elapsed

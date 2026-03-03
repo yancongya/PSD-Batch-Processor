@@ -178,7 +178,7 @@ class FluentMainWindowV2(FluentWindow):
         self.processing_thread: Optional[ProcessingThread] = None
 
         # 窗口配置
-        self.setWindowTitle("PSD Batch Processor - PSD 批量处理器")
+        self.setWindowTitle("PSD Batch Processor")
         self.resize(1200, 800)
         self.setMinimumSize(900, 600)
 
@@ -604,7 +604,8 @@ class FluentMainWindowV2(FluentWindow):
 
         # 标题
         title = SubtitleLabel("📝 脚本管理")
-        title.setStyleSheet("font-size: 24px; font-weight: bold;")
+        title.setObjectName("page_title")
+        title.setStyleSheet("font-size: 20px; font-weight: 600; color: #333; background: transparent; border: none; padding: 0px;")
         layout.addWidget(title)
 
         # 脚本目录信息
@@ -635,6 +636,8 @@ class FluentMainWindowV2(FluentWindow):
 
         # 标题
         title = StrongBodyLabel("📂 脚本目录")
+        title.setObjectName("title_label")
+        title.setStyleSheet("font-size: 14px; font-weight: 600; color: #333; background: transparent; border: none;")
         layout.addWidget(title)
 
         # 目录路径
@@ -674,6 +677,8 @@ class FluentMainWindowV2(FluentWindow):
 
         # 标题
         title = StrongBodyLabel("📋 脚本列表")
+        title.setObjectName("title_label")
+        title.setStyleSheet("font-size: 14px; font-weight: 600; color: #333; background: transparent; border: none;")
         layout.addWidget(title)
 
         # 脚本列表 TreeWidget
@@ -699,6 +704,8 @@ class FluentMainWindowV2(FluentWindow):
 
         # 标题
         title = StrongBodyLabel("ℹ️ 脚本说明")
+        title.setObjectName("title_label")
+        title.setStyleSheet("font-size: 14px; font-weight: 600; color: #333; background: transparent; border: none;")
         layout.addWidget(title)
 
         # 说明文本
@@ -727,7 +734,8 @@ class FluentMainWindowV2(FluentWindow):
 
         # 标题
         title = SubtitleLabel("⚙️ 设置")
-        title.setStyleSheet("font-size: 24px; font-weight: bold;")
+        title.setObjectName("page_title")
+        title.setStyleSheet("font-size: 20px; font-weight: 600; color: #333; background: transparent; border: none; padding: 0px;")
         layout.addWidget(title)
 
         # Photoshop 设置
@@ -766,6 +774,8 @@ class FluentMainWindowV2(FluentWindow):
 
         # 标题
         title = StrongBodyLabel("🎨 Photoshop 设置")
+        title.setObjectName("title_label")
+        title.setStyleSheet("font-size: 14px; font-weight: 600; color: #333; background: transparent; border: none;")
         layout.addWidget(title)
 
         # Photoshop 路径
@@ -783,34 +793,23 @@ class FluentMainWindowV2(FluentWindow):
 
         layout.addLayout(ps_layout)
 
-        # 并发数
-        worker_layout = QHBoxLayout()
-        worker_layout.addWidget(BodyLabel("最大并发数:"))
+        # 剩余空间阈值设置
+        threshold_layout = QHBoxLayout()
+        threshold_layout.addWidget(BodyLabel("剩余空间阈值:"))
 
-        self.worker_spin_settings = SpinBox()
-        self.worker_spin_settings.setRange(1, 8)
-        self.worker_spin_settings.setValue(self.settings.max_workers)
-        worker_layout.addWidget(self.worker_spin_settings)
+        self.space_threshold_spin = SpinBox()
+        self.space_threshold_spin.setRange(1, 100)
+        self.space_threshold_spin.setValue(10)
+        self.space_threshold_spin.setSuffix(" GB")
+        self.space_threshold_spin.setToolTip("当暂存盘剩余空间低于此值时，暂停处理并清理缓存")
+        threshold_layout.addWidget(self.space_threshold_spin)
 
-        worker_layout.addStretch()
-        layout.addLayout(worker_layout)
+        threshold_label = BodyLabel("低于此值时自动清理缓存")
+        threshold_label.setStyleSheet("color: #888;")
+        threshold_layout.addWidget(threshold_label)
 
-        # 缓存清理设置
-        cache_layout = QHBoxLayout()
-        cache_layout.addWidget(BodyLabel("缓存清理间隔:"))
-
-        self.cache_clean_spin = SpinBox()
-        self.cache_clean_spin.setRange(1, 20)
-        self.cache_clean_spin.setValue(5)
-        self.cache_clean_spin.setToolTip("每处理多少个文件后自动清理一次缓存")
-        cache_layout.addWidget(self.cache_clean_spin)
-
-        cache_label = BodyLabel("个文件清理一次")
-        cache_label.setStyleSheet("color: #888;")
-        cache_layout.addWidget(cache_label)
-
-        cache_layout.addStretch()
-        layout.addLayout(cache_layout)
+        threshold_layout.addStretch()
+        layout.addLayout(threshold_layout)
 
         return card
 
@@ -822,6 +821,8 @@ class FluentMainWindowV2(FluentWindow):
 
         # 标题
         title = StrongBodyLabel("📂 路径设置")
+        title.setObjectName("title_label")
+        title.setStyleSheet("font-size: 14px; font-weight: 600; color: #333; background: transparent; border: none;")
         layout.addWidget(title)
 
         # 脚本目录
@@ -862,6 +863,8 @@ class FluentMainWindowV2(FluentWindow):
 
         # 标题
         title = StrongBodyLabel("🎨 主题设置")
+        title.setObjectName("title_label")
+        title.setStyleSheet("font-size: 14px; font-weight: 600; color: #333; background: transparent; border: none;")
         layout.addWidget(title)
 
         # 主题选择
@@ -887,7 +890,8 @@ class FluentMainWindowV2(FluentWindow):
 
         # 标题
         title = SubtitleLabel("📋 处理日志")
-        title.setStyleSheet("font-size: 24px; font-weight: bold;")
+        title.setObjectName("page_title")
+        title.setStyleSheet("font-size: 20px; font-weight: 600; color: #333; background: transparent; border: none; padding: 0px;")
         layout.addWidget(title)
 
         # 控制按钮
@@ -922,7 +926,7 @@ class FluentMainWindowV2(FluentWindow):
     def _load_settings(self):
         """加载设置"""
         self.ps_path_edit.setText(self.settings.photoshop_path)
-        self.worker_spin_settings.setValue(self.settings.max_workers)
+        # 最大并发数固定为1，无需加载
 
         # 设置主题选择
         if self.settings.theme == "dark":
@@ -1623,22 +1627,17 @@ class FluentMainWindowV2(FluentWindow):
         size_diff = size_after - size_before
         if size_diff > 0:
             size_change = f"+{self._format_size(size_diff)} ↑"
-            color = "#ff6b6b"
         elif size_diff < 0:
             size_change = f"{self._format_size(abs(size_diff))} ↓"
-            color = "#6bcf7f"
         else:
             size_change = "无变化"
-            color = "#888"
 
-        summary = f"""
-        处理结果: {message}
-        
-        📊 文件大小统计:
-        • 处理前: {size_before_str}
-        • 处理后: {size_after_str}
-        • 大小变化: <span style='color:{color}'>{size_change}</span>
-        """
+        summary = f"""处理结果: {message}
+
+📊 文件大小统计:
+• 处理前: {size_before_str}
+• 处理后: {size_after_str}
+• 大小变化: {size_change}"""
 
         from qfluentwidgets import Dialog, MessageBox
 
@@ -1711,6 +1710,29 @@ class FluentMainWindowV2(FluentWindow):
                 font-family: 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif;
             }
 
+            /* FluentWindow 导航栏 - 移除按钮效果 */
+            NavigationInterface {
+                background-color: #252525;
+                border: none;
+            }
+            NavigationInterface QPushButton {
+                background: transparent;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 12px;
+                color: #e0e0e0;
+                font-size: 13px;
+                font-weight: 500;
+            }
+            NavigationInterface QPushButton:hover {
+                background-color: rgba(255, 255, 255, 0.1);
+                color: #ffffff;
+            }
+            NavigationInterface QPushButton:checked {
+                background-color: #0078d7;
+                color: #ffffff;
+            }
+
             /* 卡片样式 */
             CardWidget {
                 background-color: #2d2d2d;
@@ -1725,19 +1747,26 @@ class FluentMainWindowV2(FluentWindow):
 
             /* 标签样式 */
             SubtitleLabel {
-                font-size: 24px;
-                font-weight: bold;
-                color: #ffffff;
-                letter-spacing: 0.5px;
-            }
-            StrongBodyLabel {
-                font-size: 15px;
+                font-size: 20px;
                 font-weight: 600;
                 color: #ffffff;
+                letter-spacing: 0.5px;
+                background: transparent !important;
+                border: none !important;
+                padding: 0px;
+            }
+            StrongBodyLabel {
+                font-size: 14px;
+                font-weight: 600;
+                color: #ffffff;
+                background: transparent !important;
+                border: none !important;
             }
             BodyLabel {
                 font-size: 12px;
                 color: #e0e0e0;
+                background: transparent !important;
+                border: none !important;
             }
 
             /* 按钮样式 */
@@ -1913,6 +1942,29 @@ class FluentMainWindowV2(FluentWindow):
                 font-family: 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif;
             }
 
+            /* FluentWindow 导航栏 - 移除按钮效果 */
+            NavigationInterface {
+                background-color: #ffffff;
+                border: none;
+            }
+            NavigationInterface QPushButton {
+                background: transparent;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 12px;
+                color: #2c3e50;
+                font-size: 13px;
+                font-weight: 500;
+            }
+            NavigationInterface QPushButton:hover {
+                background-color: rgba(0, 120, 215, 0.1);
+                color: #0078d7;
+            }
+            NavigationInterface QPushButton:checked {
+                background-color: #0078d7;
+                color: #ffffff;
+            }
+
             /* 卡片样式 */
             CardWidget {
                 background-color: #ffffff;
@@ -1927,19 +1979,26 @@ class FluentMainWindowV2(FluentWindow):
 
             /* 标签样式 */
             SubtitleLabel {
-                font-size: 24px;
-                font-weight: bold;
-                color: #1a1a1a;
-                letter-spacing: 0.5px;
-            }
-            StrongBodyLabel {
-                font-size: 15px;
+                font-size: 20px;
                 font-weight: 600;
                 color: #1a1a1a;
+                letter-spacing: 0.5px;
+                background: transparent !important;
+                border: none !important;
+                padding: 0px;
+            }
+            StrongBodyLabel {
+                font-size: 14px;
+                font-weight: 600;
+                color: #1a1a1a;
+                background: transparent !important;
+                border: none !important;
             }
             BodyLabel {
                 font-size: 12px;
                 color: #4a4a4a;
+                background: transparent !important;
+                border: none !important;
             }
 
             /* 按钮样式 */
@@ -2128,14 +2187,14 @@ class FluentMainWindowV2(FluentWindow):
         """保存设置"""
         self.settings.script_dir = self.script_dir_edit.text()
         self.settings.backup_dir = self.backup_dir_edit.text()
-        self.settings.max_workers = self.worker_spin_settings.value()
+        # 最大并发数固定为1，无需保存
 
-        # 更新处理器的缓存清理间隔
-        self.processor.cache_clean_interval = self.cache_clean_spin.value()
+        # 更新处理器的空间阈值设置
+        self.processor.space_threshold_gb = self.space_threshold_spin.value()
 
         if self.settings.save():
-            self._show_info("设置已保存", f"设置已成功保存\n缓存清理间隔: 每 {self.cache_clean_spin.value()} 个文件")
-            self._add_log("info", f"设置已保存 - 缓存清理间隔: 每 {self.cache_clean_spin.value()} 个文件")
+            self._show_info("设置已保存", f"设置已成功保存\n剩余空间阈值: {self.space_threshold_spin.value()} GB")
+            self._add_log("info", f"设置已保存 - 剩余空间阈值: {self.space_threshold_spin.value()} GB")
         else:
             self._show_error("保存失败", "设置保存失败")
 
