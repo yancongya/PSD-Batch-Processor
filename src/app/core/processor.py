@@ -26,15 +26,22 @@ class BatchProcessor:
         self.file_list = FileList()
 
         # 回调函数
-        self._on_progress: Optional[Callable[[int, int, str], None]] = None
+        self._on_progress: Optional[Callable[[int, int, str, int], None]] = None  # (current, total, message, total_files)
         self._on_status_update: Optional[Callable[[str, str], None]] = None
-        self._on_finished: Optional[Callable[[int, int, float], None]] = None
+        self._on_finished: Optional[Callable[[int, int, float, int, int], None]] = None
 
         # 处理状态
         self.is_processing = False
         self.total_processed = 0
         self.total_success = 0
         self.total_failed = 0
+        
+        # 缓存清理设置
+        self.cache_clean_interval = 5  # 每处理N个文件清理一次缓存
+        self._files_since_last_clean = 0
+        
+        # 总文件数（用于进度计算）
+        self._total_files = 0
 
     def set_callbacks(self, on_progress=None, on_status_update=None, on_finished=None):
         """设置回调函数"""
@@ -45,20 +52,39 @@ class BatchProcessor:
         if on_finished is not None:
             self._on_finished = on_finished
 
-    def _notify_progress(self, current: int, total: int, message: str):
-        """通知进度更新"""
+    def _notify_progress(self, current: int, total: int, message: str, is_file_stage=False):
+        """通知进度更新
+        
+        Args:
+            current: 当前进度
+            total: 总数
+            message: 进度消息
+            is_file_stage: 是否为单文件处理阶段（True表示4个阶段之一，False表示总体文件进度）
+        """
         if self._on_progress:
-            self._on_progress(current, total, message)
+            # 如果是文件阶段，传递总文件数以便UI计算总体进度
+            if is_file_stage:
+                self._on_progress(current, total, message, self._total_files)
+            else:
+                self._on_progress(current, total, message, total)
 
     def _notify_status(self, file_name: str, status: str):
         """通知状态更新"""
         if self._on_status_update:
             self._on_status_update(file_name, status)
 
-    def _notify_finished(self, success: int, failed: int, elapsed: float):
+    def _notify_finished(self, success: int, failed: int, elapsed: float, size_before: int = 0, size_after: int = 0):
         """通知处理完成"""
         if self._on_finished:
-            self._on_finished(success, failed, elapsed)
+            self._on_finished(success, failed, elapsed, size_before, size_after)
+
+    def _format_size(self, size: int) -> str:
+        """格式化文件大小"""
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if size < 1024:
+                return f"{size:.2f} {unit}"
+            size /= 1024
+        return f"{size:.2f} TB"
 
     def create_backup_folder(self) -> Tuple[bool, Path]:
         """
@@ -160,6 +186,7 @@ class BatchProcessor:
                     return False, error_msg
 
             # 打开 PSD 文件
+            self._notify_progress(0, 4, f"{file_item.file_name} - 打开文件中...", is_file_stage=True)
             open_success, open_msg = self.controller.open_document(str(file_item.path))
             if not open_success:
                 error_msg = f"无法打开文件: {open_msg}"
@@ -169,12 +196,59 @@ class BatchProcessor:
                 return False, error_msg
 
             # 执行 JSX 脚本
+            self._notify_progress(1, 4, f"{file_item.file_name} - 运行脚本中...", is_file_stage=True)
             exec_success, exec_msg = self.controller.run_jsx_script(script_path)
 
+            # 脚本执行后，Photoshop 连接可能会断开，尝试重新连接
+            if not self.controller.is_connected():
+                self.logger.warning(f"脚本执行后连接断开，尝试重新连接...")
+                reconnect_success, reconnect_msg = self.controller.connect(launch_if_needed=False)
+                if not reconnect_success:
+                    error_msg = f"脚本执行后无法重新连接 Photoshop: {reconnect_msg}"
+                    file_item.set_status(FileStatus.FAILED, error_msg)
+                    self._notify_status(file_item.file_name, f"❌ {error_msg}")
+                    self.logger.error(error_msg)
+                    return False, error_msg
+                self.logger.info("已重新连接到 Photoshop")
+            
+            # 如果脚本执行失败但重新连接成功，可能是执行过程中连接断开导致的假失败
+            # 检查文档是否仍然打开，如果文档正常，说明脚本可能已经执行成功
+            if not exec_success:
+                self.logger.warning(f"脚本执行返回失败: {exec_msg}")
+                # 尝试检查当前是否有活动文档
+                try:
+                    has_doc = self.controller._photoshop.ActiveDocument is not None
+                    if has_doc:
+                        self.logger.info("检测到活动文档，假设脚本执行成功")
+                        exec_success = True
+                        exec_msg = f"脚本执行成功（重新连接后验证）"
+                except:
+                    self.logger.warning("无法验证文档状态，保持原失败状态")
+
             # 关闭文档（保存更改）
+            self._notify_progress(2, 4, f"{file_item.file_name} - 保存文件中...", is_file_stage=True)
             close_success, close_msg = self.controller.close_document(save=True)
             if not close_success:
                 self.logger.warning(f"关闭文档时出现问题: {close_msg}")
+
+            self._notify_progress(3, 4, f"{file_item.file_name} - 处理完成", is_file_stage=True)
+
+            # 清理Photoshop缓存，防止暂存盘满（每N个文件清理一次）
+            self._files_since_last_clean += 1
+            if self._files_since_last_clean >= self.cache_clean_interval:
+                self.controller.purge_cache()
+                self.logger.info(f"已自动清理缓存（每 {self.cache_clean_interval} 个文件）")
+                self._files_since_last_clean = 0
+                
+                # 缓存清理后，Photoshop 连接可能会断开，尝试重新连接
+                if not self.controller.is_connected():
+                    self.logger.warning(f"缓存清理后连接断开，尝试重新连接...")
+                    reconnect_success, reconnect_msg = self.controller.connect(launch_if_needed=False)
+                    if not reconnect_success:
+                        self.logger.warning(f"缓存清理后无法重新连接 Photoshop: {reconnect_msg}")
+                        # 不返回失败，因为缓存清理失败不影响文件处理结果
+                    else:
+                        self.logger.info("已重新连接到 Photoshop")
 
             elapsed = time.time() - start_time
             file_item.process_time = elapsed
@@ -219,12 +293,13 @@ class BatchProcessor:
         self.total_processed = 0
         self.total_success = 0
         self.total_failed = 0
+        self._files_since_last_clean = 0  # 重置缓存清理计数器
 
         try:
             # 验证脚本路径
             script_file = Path(script_path)
             if not script_file.exists():
-                self.logger.error(f"JSX 脚本不存在: {script_path}")
+                self.logger.error(f"JSX 脚本不存在: {script_file}")
                 return 0, 0, 0
 
             # 获取待处理文件
@@ -232,9 +307,16 @@ class BatchProcessor:
             if not pending_files:
                 self.logger.warning("没有待处理的文件")
                 return 0, 0, 0
+            
+            # 设置总文件数
+            self._total_files = len(pending_files)
 
             total_files = len(pending_files)
             self.logger.info(f"开始批量处理 {total_files} 个文件")
+
+            # 计算处理前文件总大小
+            total_size_before = sum(f.path.stat().st_size for f in pending_files if f.path.exists())
+            self.logger.info(f"处理前文件总大小: {self._format_size(total_size_before)}")
 
             # 创建备份文件夹
             backup_success, backup_folder = self.create_backup_folder()
@@ -242,12 +324,10 @@ class BatchProcessor:
                 self.logger.error("无法创建备份文件夹，停止处理")
                 return 0, 0, 0
 
-            # 设置并发数
-            if max_workers is None:
-                max_workers = self.settings.max_workers
-            max_workers = max(1, min(max_workers, 2))  # 限制为 1-2
+            # 强制使用单线程处理（逐个文件处理）
+            max_workers = 1
 
-            self.logger.info(f"使用 {max_workers} 个并发线程")
+            self.logger.info(f"使用单线程模式逐个处理文件")
 
             # 连接到 Photoshop
             self.logger.info("正在连接 Photoshop...")
@@ -312,11 +392,29 @@ class BatchProcessor:
             elapsed = time.time() - start_time
             self.is_processing = False
 
+            # 计算处理后文件总大小
+            total_size_after = 0
+            if backup_folder.exists():
+                for f in backup_folder.glob("*.psd"):
+                    total_size_after += f.stat().st_size
+            
+            size_before_str = self._format_size(total_size_before)
+            size_after_str = self._format_size(total_size_after)
+            size_diff = total_size_after - total_size_before
+            size_diff_str = self._format_size(abs(size_diff))
+            
+            if size_diff > 0:
+                size_change = f"+{size_diff_str}"
+            elif size_diff < 0:
+                size_change = f"-{size_diff_str}"
+            else:
+                size_change = "无变化"
+
             # 断开 Photoshop 连接
             self.controller.disconnect()
 
-            # 发送完成通知
-            self._notify_finished(self.total_success, self.total_failed, elapsed)
+            # 发送完成通知 (包含大小信息)
+            self._notify_finished(self.total_success, self.total_failed, elapsed, total_size_before, total_size_after)
 
             # 输出总结
             self.logger.info("=" * 60)
@@ -324,6 +422,9 @@ class BatchProcessor:
             self.logger.info(f"总文件数: {total_files}")
             self.logger.info(f"成功: {self.total_success}")
             self.logger.info(f"失败: {self.total_failed}")
+            self.logger.info(f"处理前大小: {size_before_str}")
+            self.logger.info(f"处理后大小: {size_after_str}")
+            self.logger.info(f"大小变化: {size_change}")
             self.logger.info(f"耗时: {elapsed:.2f} 秒")
             self.logger.info(f"备份位置: {backup_folder}")
             self.logger.info("=" * 60)

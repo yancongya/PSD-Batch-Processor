@@ -11,15 +11,18 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QMimeData
 from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
-                             QFileDialog, QMessageBox, QTreeWidgetItem, QSplitter, QMenu, QAction)
+                             QFileDialog, QMessageBox, QTreeWidgetItem, QSplitter, QMenu, QAction,
+                             QTreeWidget, QSizePolicy)
+from PyQt5.QtGui import QDrag, QIcon
 from qfluentwidgets import (
     FluentWindow, NavigationInterface, CardWidget, SubtitleLabel, BodyLabel,
     PrimaryPushButton, PushButton, LineEdit, ComboBox, SpinBox, CheckBox,
     TextEdit, TreeWidget, ProgressRing, InfoBar, InfoBarPosition, MessageBox,
     StrongBodyLabel, PrimaryToolButton, ToolButton, FluentIcon, NavigationItemPosition,
-    TableWidget, HorizontalSeparator, VerticalSeparator, ScrollArea, setTheme, Theme
+    TableWidget, HorizontalSeparator, VerticalSeparator, ScrollArea, setTheme, Theme,
+    SearchLineEdit
 )
 
 from app.config.settings import get_settings, init_settings
@@ -28,12 +31,86 @@ from app.models.file_item import FileItem, FileStatus
 from utils.logger import get_logger, init_logger
 
 
+FILE_STATUS_ICON = {
+    'pending': FluentIcon.PHOTO,
+    'processing': FluentIcon.SYNC,
+    'success': FluentIcon.ACCEPT,
+    'error': FluentIcon.CANCEL,
+}
+
+
+class DroppableTreeWidget(TreeWidget):
+    """支持拖放的树形控件"""
+    files_dropped = pyqtSignal(list)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+        self.setDragEnabled(False)
+        self.setSelectionMode(QTreeWidget.ExtendedSelection)
+        self._normal_style = ""
+        self._drag_style = ""
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+            self._drag_style = """
+                TreeWidget {
+                    font-size: 12px;
+                    border: 3px dashed #0078d7;
+                    border-radius: 8px;
+                    background-color: rgba(0, 120, 215, 0.08);
+                }
+            """
+            self.setStyleSheet(self._drag_style)
+
+    def dragLeaveEvent(self, event):
+        self._restore_normal_style()
+
+    def dropEvent(self, event):
+        files = []
+        for url in event.mimeData().urls():
+            path = url.toLocalFile()
+            if path:
+                files.append(path)
+        
+        if files:
+            self.files_dropped.emit(files)
+        
+        self._restore_normal_style()
+
+    def _restore_normal_style(self):
+        """恢复正常样式"""
+        self.setStyleSheet("""
+            TreeWidget {
+                font-size: 12px;
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
+                background-color: #fafafa;
+                alternate-background-color: #f0f0f0;
+            }
+            TreeWidget::item {
+                padding: 8px 10px;
+                height: 32px;
+                border-bottom: 1px solid #e8e8e8;
+            }
+            TreeWidget::item:hover {
+                background-color: rgba(0, 120, 215, 0.1);
+            }
+            TreeWidget::item:selected {
+                background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #0078d7, stop:1 #005a9e);
+                color: white;
+                border-radius: 0;
+            }
+        """)
+
+
 class ProcessingThread(QThread):
     """处理线程 - 避免UI卡顿"""
 
-    progress_signal = pyqtSignal(str, int, int)  # status, current, total
+    progress_signal = pyqtSignal(str, int, int, int)  # status, current, total, total_files
     log_signal = pyqtSignal(str, str)  # level, message
-    finished_signal = pyqtSignal(bool, str)  # success, message
+    finished_signal = pyqtSignal(bool, str, int, int)  # success, message, size_before, size_after
 
     def __init__(self, processor, files, script_path, settings, parent=None):
         super().__init__(parent)
@@ -49,7 +126,7 @@ class ProcessingThread(QThread):
             self.processor.set_callbacks(
                 on_progress=self._on_progress,
                 on_status_update=self._on_status_update,
-                on_finished=self._on_finished
+                on_finished=self._on_finished  # 让callback触发finished_signal
             )
 
             # 将文件添加到处理器的文件列表
@@ -57,32 +134,27 @@ class ProcessingThread(QThread):
             for file_path in self.files:
                 self.processor.file_list.add_file(file_path)
 
-            # 执行批量处理
-            success, failed, elapsed = self.processor.process_batch(self.script_path)
-
-            if success > 0 or failed == 0:
-                self.finished_signal.emit(True, f"处理完成: 成功 {success} 个, 失败 {failed} 个")
-            else:
-                self.finished_signal.emit(False, f"处理失败: 成功 {success} 个, 失败 {failed} 个")
+            # 执行批量处理 - 结果通过callback的_on_finished传递
+            self.processor.process_batch(self.script_path)
 
         except Exception as e:
             self.log_signal.emit("error", f"处理异常: {str(e)}")
-            self.finished_signal.emit(False, f"异常: {str(e)}")
+            self.finished_signal.emit(False, f"异常: {str(e)}", 0, 0)
 
-    def _on_progress(self, current, total, message=""):
+    def _on_progress(self, current, total, message="", total_files=0):
         """进度回调"""
-        self.progress_signal.emit(message, current, total)
+        self.progress_signal.emit(message, current, total, total_files)
 
     def _on_status_update(self, filename, status):
         """状态更新回调"""
         self.log_signal.emit("info", f"{filename}: {status}")
 
-    def _on_finished(self, success, failed, elapsed):
+    def _on_finished(self, success, failed, elapsed, size_before=0, size_after=0):
         """完成回调"""
         if success > 0:
-            self.finished_signal.emit(True, f"处理完成: 成功 {success} 个, 失败 {failed} 个, 耗时 {elapsed:.2f}s")
+            self.finished_signal.emit(True, f"处理完成: 成功 {success} 个, 失败 {failed} 个, 耗时 {elapsed:.2f}s", size_before, size_after)
         else:
-            self.finished_signal.emit(False, f"处理失败: 成功 {success} 个, 失败 {failed} 个, 耗时 {elapsed:.2f}s")
+            self.finished_signal.emit(False, f"处理失败: 成功 {success} 个, 失败 {failed} 个, 耗时 {elapsed:.2f}s", size_before, size_after)
 
 
 class FluentMainWindowV2(FluentWindow):
@@ -204,289 +276,202 @@ class FluentMainWindowV2(FluentWindow):
 
     def _setup_process_interface(self):
         """设置文件处理界面 - 核心功能，文件列表为主"""
-        # 使用自适应布局，移除滚动区域
+        # 使用自适应布局
         main_layout = QVBoxLayout(self.process_interface)
-        main_layout.setSpacing(10)
-        main_layout.setContentsMargins(12, 12, 12, 12)
+        main_layout.setSpacing(6)
+        main_layout.setContentsMargins(12, 8, 12, 12)
 
-        # 标题区域 - 包含标题、操作按钮和提示
-        title_layout = QHBoxLayout()
+        # 工具栏1 - 文件操作：搜索 + 添加 + 清空 + 统计
+        toolbar1 = QHBoxLayout()
+        toolbar1.setSpacing(8)
 
-        # 左侧标题
-        title = SubtitleLabel("📁 文件处理")
-        title.setStyleSheet("""
-            SubtitleLabel {
-                font-size: 18px;
-                font-weight: bold;
-                padding: 4px 0px;
-            }
-        """)
-        title_layout.addWidget(title)
+        # 搜索框（自适应缩放）
+        self.file_search = SearchLineEdit()
+        self.file_search.setPlaceholderText("搜索文件...")
+        self.file_search.setFixedHeight(28)
+        self.file_search.textChanged.connect(self._filter_files)
+        self.file_search.setStyleSheet("SearchLineEdit { font-size: 12px; border-radius: 6px; }")
+        toolbar1.addWidget(self.file_search, 1)
 
-        # 配置信息容器
-        config_layout = QHBoxLayout()
-        config_layout.setSpacing(8)
+        # 添加文件
+        add_file_btn = PushButton("添加文件")
+        add_file_btn.setIcon(FluentIcon.DOCUMENT)
+        add_file_btn.setFixedHeight(28)
+        add_file_btn.setMinimumWidth(75)
+        add_file_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        add_file_btn.setStyleSheet("PushButton { font-size: 12px; padding: 4px 12px; border-radius: 6px; }")
+        add_file_btn.clicked.connect(self._add_files)
+        add_file_btn.setToolTip("添加文件 (Ctrl+O)")
+        toolbar1.addWidget(add_file_btn)
 
-        # Photoshop 配置
-        self.ps_config_display = BodyLabel("")
-        self.ps_config_display.setStyleSheet("""
+        # 添加文件夹
+        add_folder_btn = PushButton("文件夹")
+        add_folder_btn.setIcon(FluentIcon.FOLDER)
+        add_folder_btn.setFixedHeight(28)
+        add_folder_btn.setMinimumWidth(70)
+        add_folder_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        add_folder_btn.setStyleSheet("PushButton { font-size: 12px; padding: 4px 12px; border-radius: 6px; }")
+        add_folder_btn.clicked.connect(self._add_folder)
+        add_folder_btn.setToolTip("添加文件夹 (Ctrl+D)")
+        toolbar1.addWidget(add_folder_btn)
+
+        # 清空
+        clear_btn = PushButton("清空")
+        clear_btn.setIcon(FluentIcon.DELETE)
+        clear_btn.setFixedHeight(28)
+        clear_btn.setMinimumWidth(60)
+        clear_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        clear_btn.setStyleSheet("PushButton { font-size: 12px; padding: 4px 12px; border-radius: 6px; }")
+        clear_btn.clicked.connect(self._clear_files)
+        clear_btn.setToolTip("清空列表 (Ctrl+Delete)")
+        toolbar1.addWidget(clear_btn)
+
+        # 统计
+        self.stats_label = BodyLabel("0 个文件")
+        self.stats_label.setFixedHeight(28)
+        self.stats_label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.stats_label.setStyleSheet("""
             BodyLabel {
-                font-size: 10px;
-                color: #666;
-                padding: 2px 8px;
-                background-color: rgba(0, 120, 215, 0.08);
-                border-radius: 4px;
-            }
-        """)
-        config_layout.addWidget(self.ps_config_display)
-
-        # 脚本配置
-        self.script_config_display = BodyLabel("")
-        self.script_config_display.setStyleSheet("""
-            BodyLabel {
-                font-size: 10px;
-                color: #666;
-                padding: 2px 8px;
-                background-color: rgba(0, 120, 215, 0.08);
-                border-radius: 4px;
-            }
-        """)
-        config_layout.addWidget(self.script_config_display)
-
-        config_layout.addStretch()
-        title_layout.addLayout(config_layout)
-
-        # 提示文字
-        tip_label = BodyLabel("💡 双击文件快速打开位置")
-        tip_label.setStyleSheet("""
-            BodyLabel {
-                font-size: 10px;
-                color: #888;
-                padding: 4px 0px;
-            }
-        """)
-        title_layout.addWidget(tip_label)
-
-        title_layout.addStretch()
-
-        # 操作按钮 - 开始、停止、输出
-        self.start_btn = PrimaryPushButton("开始")
-        self.start_btn.setIcon(FluentIcon.PLAY)
-        self.start_btn.setMinimumHeight(32)
-        self.start_btn.setMinimumWidth(80)
-        self.start_btn.setStyleSheet("""
-            PrimaryPushButton {
                 font-size: 12px;
-                font-weight: 700;
-                padding: 6px 12px;
-                border-radius: 5px;
-            }
-            PrimaryPushButton:hover {
-                background-color: #106ebe;
-            }
-            PrimaryPushButton:pressed {
-                background-color: #005a9e;
-            }
-            PrimaryPushButton:disabled {
-                background-color: #a0a0a0;
+                font-weight: 600;
+                color: #0078d7;
+                padding: 4px 12px;
+                background-color: rgba(0, 120, 215, 0.1);
+                border-radius: 6px;
             }
         """)
-        self.start_btn.clicked.connect(self._start_processing)
-        self.start_btn.setToolTip("开始批量处理 (Ctrl+R)")
-        title_layout.addWidget(self.start_btn)
+        toolbar1.addWidget(self.stats_label)
 
+        main_layout.addLayout(toolbar1)
+
+        # 工具栏2 - 处理操作：脚本 + 刷新 + 开始/停止 + 输出
+        toolbar2 = QHBoxLayout()
+        toolbar2.setSpacing(8)
+
+        # 脚本选择（自适应缩放）
+        self.script_combo = ComboBox()
+        self.script_combo.setPlaceholderText("选择脚本...")
+        self.script_combo.setFixedHeight(28)
+        self.script_combo.setStyleSheet("ComboBox { font-size: 12px; padding: 4px 10px; border-radius: 6px; }")
+        toolbar2.addWidget(self.script_combo, 1)
+
+        # 刷新脚本
+        refresh_btn = ToolButton()
+        refresh_btn.setIcon(FluentIcon.SYNC)
+        refresh_btn.setFixedSize(28, 28)
+        refresh_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        refresh_btn.clicked.connect(self._refresh_scripts)
+        refresh_btn.setToolTip("刷新脚本 (F5)")
+        toolbar2.addWidget(refresh_btn)
+
+        # 启动PS
+        self.launch_ps_btn = PushButton("启动PS")
+        self.launch_ps_btn.setIcon(FluentIcon.UPDATE)
+        self.launch_ps_btn.setFixedHeight(28)
+        self.launch_ps_btn.setMinimumWidth(70)
+        self.launch_ps_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.launch_ps_btn.setStyleSheet("PushButton { font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 6px; }")
+        self.launch_ps_btn.clicked.connect(self._launch_photoshop)
+        self.launch_ps_btn.setToolTip("启动Photoshop并获取暂存盘信息")
+        toolbar2.addWidget(self.launch_ps_btn)
+
+        # 开始
+        self.start_btn = PrimaryPushButton("开始处理")
+        self.start_btn.setIcon(FluentIcon.PLAY)
+        self.start_btn.setFixedHeight(28)
+        self.start_btn.setMinimumWidth(80)
+        self.start_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.start_btn.setStyleSheet("PrimaryPushButton { font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 6px; }")
+        self.start_btn.clicked.connect(self._start_processing)
+        self.start_btn.setToolTip("开始处理 (Ctrl+R)")
+        toolbar2.addWidget(self.start_btn)
+
+        # 停止
         self.stop_btn = PushButton("停止")
         self.stop_btn.setIcon(FluentIcon.PAUSE)
-        self.stop_btn.setMinimumHeight(32)
-        self.stop_btn.setMinimumWidth(70)
-        self.stop_btn.setStyleSheet("""
-            PushButton {
-                font-size: 12px;
-                font-weight: 600;
-                padding: 6px 12px;
-                border-radius: 5px;
-                border: 1px solid #d13438;
-                color: #d13438;
-                background-color: transparent;
-            }
-            PushButton:hover {
-                background-color: rgba(209, 52, 56, 0.1);
-            }
-            PushButton:pressed {
-                background-color: rgba(209, 52, 56, 0.2);
-            }
-            PushButton:disabled {
-                border-color: #ccc;
-                color: #999;
-                background-color: transparent;
-            }
-        """)
+        self.stop_btn.setFixedHeight(28)
+        self.stop_btn.setMinimumWidth(65)
+        self.stop_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.stop_btn.setStyleSheet("PushButton { font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 6px; }")
         self.stop_btn.clicked.connect(self._stop_processing)
         self.stop_btn.setEnabled(False)
-        self.stop_btn.setToolTip("停止当前处理 (Esc)")
-        title_layout.addWidget(self.stop_btn)
+        self.stop_btn.setToolTip("停止处理 (Esc)")
+        toolbar2.addWidget(self.stop_btn)
 
+        # 输出
         output_btn = PushButton("输出")
         output_btn.setIcon(FluentIcon.FOLDER)
-        output_btn.setMinimumHeight(32)
-        output_btn.setMinimumWidth(70)
-        output_btn.setStyleSheet("""
-            PushButton {
-                font-size: 12px;
-                font-weight: 600;
-                padding: 6px 12px;
-                border-radius: 5px;
-                border: 1px solid #0078d7;
-                color: #0078d7;
-                background-color: transparent;
-            }
-            PushButton:hover {
-                background-color: rgba(0, 120, 215, 0.1);
-            }
-            PushButton:pressed {
-                background-color: rgba(0, 120, 215, 0.2);
-            }
-        """)
+        output_btn.setFixedHeight(28)
+        output_btn.setMinimumWidth(60)
+        output_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        output_btn.setStyleSheet("PushButton { font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 6px; }")
         output_btn.clicked.connect(self._open_output_folder)
         output_btn.setToolTip("打开备份文件夹")
-        title_layout.addWidget(output_btn)
+        toolbar2.addWidget(output_btn)
 
-        main_layout.addLayout(title_layout)
+        main_layout.addLayout(toolbar2)
 
         # 文件列表区域（占主要空间）
-        file_card = self._create_file_operation_card()
-        main_layout.addWidget(file_card)
+        file_card = self._create_file_card()
+        main_layout.addWidget(file_card, 1)
 
-        # 控制组件区域 - 脚本选择和并发数（移到文件列表和进度条中间）
-        control_layout = QHBoxLayout()
-        control_layout.setSpacing(8)
-
-        # 脚本选择
-        self.script_combo = ComboBox()
-        self.script_combo.setPlaceholderText("选择脚本")
-        self.script_combo.setMinimumHeight(30)
-        self.script_combo.setMinimumWidth(150)
-        self.script_combo.setStyleSheet("""
-            ComboBox {
-                font-size: 11px;
-                padding: 4px 8px;
-                border-radius: 5px;
-            }
-        """)
-        control_layout.addWidget(self.script_combo)
-
-        # 刷新按钮
-        refresh_btn = PushButton("刷新")
-        refresh_btn.setIcon(FluentIcon.SYNC)
-        refresh_btn.setMinimumHeight(30)
-        refresh_btn.setMinimumWidth(60)
-        refresh_btn.setStyleSheet("""
-            PushButton {
-                font-size: 11px;
-                padding: 4px 8px;
-                border-radius: 5px;
-            }
-        """)
-        refresh_btn.clicked.connect(self._refresh_scripts)
-        refresh_btn.setToolTip("刷新脚本列表 (F5)")
-        control_layout.addWidget(refresh_btn)
-
-        # 并发数
-        self.worker_spin = SpinBox()
-        self.worker_spin.setRange(1, 8)
-        self.worker_spin.setValue(self.settings.max_workers)
-        self.worker_spin.setMinimumHeight(30)
-        self.worker_spin.setMinimumWidth(50)
-        self.worker_spin.setStyleSheet("""
-            SpinBox {
-                font-size: 11px;
-                padding: 2px 6px;
-                border-radius: 5px;
-            }
-        """)
-        control_layout.addWidget(self.worker_spin)
-
-        control_layout.addStretch()
-        main_layout.addLayout(control_layout)
-
-        # 底部：进度显示区域（固定在底部）
+        # 底部：进度显示区域
         progress_card = self._create_progress_card()
         main_layout.addWidget(progress_card)
 
 
-    def _create_file_operation_card(self):
-        """创建文件操作卡片 - 简化样式，无外描边"""
+    def _create_file_card(self):
+        """创建文件列表卡片"""
         card = CardWidget()
         card.setStyleSheet("CardWidget { background-color: transparent; border: none; padding: 0px; }")
         layout = QVBoxLayout(card)
-        layout.setSpacing(8)
+        layout.setSpacing(6)
+        layout.setContentsMargins(0, 0, 0, 0)
 
-        # 标题区域（简化）
-        title_layout = QHBoxLayout()
-        title = BodyLabel("📂 文件列表")
-        title.setStyleSheet("""
-            BodyLabel {
-                font-size: 11px;
-                font-weight: 600;
-                padding: 2px 0px;
-                color: #666;
-            }
-        """)
-        title_layout.addWidget(title)
-        title_layout.addStretch()
-
-        # 统计信息 - 简化为只显示文件数
-        self.stats_label = BodyLabel("0")
-        self.stats_label.setStyleSheet("""
-            BodyLabel {
-                font-size: 11px;
-                font-weight: 600;
-                color: #0078d7;
-                padding: 2px 8px;
-                background-color: rgba(0, 120, 215, 0.1);
-                border-radius: 10px;
-            }
-        """)
-        title_layout.addWidget(self.stats_label)
-        layout.addLayout(title_layout)
-
-        # 文件列表 - 优化显示和交互
-        self.file_tree = TreeWidget()
+        # 文件列表 - 拖放支持
+        self.file_tree = DroppableTreeWidget()
         self.file_tree.setHeaderLabels(["文件名", "状态", "路径"])
-
-        # 优化列宽 - 更智能的自适应
-        self.file_tree.setColumnWidth(0, 200)  # 文件名
-        self.file_tree.setColumnWidth(1, 80)   # 状态
-        self.file_tree.setColumnWidth(2, 350)  # 路径
-
-        # 最小高度改为自适应
-        self.file_tree.setMinimumHeight(200)
-        self.file_tree.setMaximumHeight(300)  # 限制最大高度，避免过度占用空间
-
-        # 优化视觉样式
+        self.file_tree.setColumnWidth(0, 220)
+        self.file_tree.setColumnWidth(1, 90)
+        self.file_tree.setColumnWidth(2, 380)
+        self.file_tree.setAlternatingRowColors(False)  # 禁用隔行变色
         self.file_tree.setStyleSheet("""
             TreeWidget {
                 font-size: 12px;
-                border: 1px solid #e0e0e0;
-                border-radius: 6px;
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
                 background-color: #fafafa;
-                alternate-background-color: #f5f5f5;
+                gridline-color: #e0e0e0;
+            }
+            TreeWidget::header {
+                background-color: #f5f5f5;
+                padding: 8px;
+                border: none;
+                border-bottom: 2px solid #e0e0e0;
+                border-radius: 6px 6px 0 0;
+                font-weight: 600;
+                color: #333;
             }
             TreeWidget::item {
-                padding: 6px 8px;
-                height: 28px;
+                padding: 8px 10px;
+                height: 32px;
+                border-bottom: 1px solid #e8e8e8;
+                background-color: #fafafa;
             }
             TreeWidget::item:hover {
-                background-color: rgba(0, 120, 215, 0.08);
+                background-color: rgba(0, 120, 215, 0.1);
             }
             TreeWidget::item:selected {
-                background-color: #0078d7;
+                background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #0078d7, stop:1 #005a9e);
                 color: white;
-                border-radius: 3px;
+                border-radius: 0;
             }
             TreeWidget::item:selected:!active {
                 background-color: #c7e0f4;
                 color: #000;
+            }
+            TreeWidget::branch {
+                background-color: transparent;
             }
         """)
 
@@ -497,32 +482,38 @@ class FluentMainWindowV2(FluentWindow):
         # 添加双击打开文件功能
         self.file_tree.itemDoubleClicked.connect(self._open_file_in_explorer)
 
+        # 连接拖放信号
+        self.file_tree.files_dropped.connect(self._handle_dropped_files)
+
+        # 保存原始文件列表用于搜索过滤
+        self._all_files = []
+
         layout.addWidget(self.file_tree)
 
         return card
 
     def _create_progress_card(self):
-        """创建进度卡片 - 只保留两个进度条"""
+        """创建进度卡片 - 优化显示"""
         card = CardWidget()
         card.setStyleSheet("CardWidget { background-color: transparent; border: none; padding: 0px; }")
         layout = QVBoxLayout(card)
-        layout.setSpacing(8)
+        layout.setSpacing(10)
 
         # 进度条1 - 主进度条
         from PyQt5.QtWidgets import QProgressBar
         self.progress_bar = QProgressBar()
-        self.progress_bar.setMinimumHeight(24)
+        self.progress_bar.setMinimumHeight(28)
         self.progress_bar.setMinimum(0)
         self.progress_bar.setMaximum(100)
         self.progress_bar.setValue(0)
         self.progress_bar.setFormat("等待开始... %p%")
         self.progress_bar.setStyleSheet("""
             QProgressBar {
-                border: 1px solid #e0e0e0;
-                border-radius: 6px;
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
                 text-align: center;
                 background-color: #fafafa;
-                font-size: 11px;
+                font-size: 12px;
                 font-weight: 600;
                 color: #333;
             }
@@ -533,14 +524,14 @@ class FluentMainWindowV2(FluentWindow):
                     stop:0.5 #106ebe,
                     stop:1 #005a9e
                 );
-                border-radius: 5px;
+                border-radius: 6px;
             }
         """)
         layout.addWidget(self.progress_bar)
 
         # 进度条2 - 详细进度条（显示文件进度）
         self.progress_detail_bar = QProgressBar()
-        self.progress_detail_bar.setMinimumHeight(18)
+        self.progress_detail_bar.setMinimumHeight(20)
         self.progress_detail_bar.setMinimum(0)
         self.progress_detail_bar.setMaximum(100)
         self.progress_detail_bar.setValue(0)
@@ -548,7 +539,37 @@ class FluentMainWindowV2(FluentWindow):
         self.progress_detail_bar.setStyleSheet("""
             QProgressBar {
                 border: 1px solid #e0e0e0;
+                border-radius: 6px;
+                text-align: center;
+                background-color: #fafafa;
+                font-size: 11px;
+                color: #666;
+            }
+            QProgressBar::chunk {
+                background-color: #6bcf7f;
                 border-radius: 5px;
+            }
+        """)
+        layout.addWidget(self.progress_detail_bar)
+
+        # 暂存盘信息 - 简化显示
+        scratch_layout = QHBoxLayout()
+        scratch_layout.setSpacing(10)
+        
+        self.scratch_progress_label = BodyLabel("暂存盘:")
+        self.scratch_progress_label.setStyleSheet("BodyLabel { font-size: 11px; color: #666; font-weight: 600; }")
+        scratch_layout.addWidget(self.scratch_progress_label)
+        
+        self.scratch_progress_bar = QProgressBar()
+        self.scratch_progress_bar.setMinimumHeight(16)
+        self.scratch_progress_bar.setMinimum(0)
+        self.scratch_progress_bar.setMaximum(100)
+        self.scratch_progress_bar.setValue(0)
+        self.scratch_progress_bar.setFormat("")
+        self.scratch_progress_bar.setStyleSheet("""
+            QProgressBar {
+                border: 1px solid #e0e0e0;
+                border-radius: 4px;
                 text-align: center;
                 background-color: #fafafa;
                 font-size: 10px;
@@ -556,10 +577,16 @@ class FluentMainWindowV2(FluentWindow):
             }
             QProgressBar::chunk {
                 background-color: #6bcf7f;
-                border-radius: 4px;
+                border-radius: 3px;
             }
         """)
-        layout.addWidget(self.progress_detail_bar)
+        scratch_layout.addWidget(self.scratch_progress_bar, 1)
+        
+        self.scratch_progress_text = BodyLabel("--")
+        self.scratch_progress_text.setStyleSheet("BodyLabel { font-size: 11px; color: #888; }")
+        scratch_layout.addWidget(self.scratch_progress_text)
+        
+        layout.addLayout(scratch_layout)
 
         return card
 
@@ -768,6 +795,23 @@ class FluentMainWindowV2(FluentWindow):
         worker_layout.addStretch()
         layout.addLayout(worker_layout)
 
+        # 缓存清理设置
+        cache_layout = QHBoxLayout()
+        cache_layout.addWidget(BodyLabel("缓存清理间隔:"))
+
+        self.cache_clean_spin = SpinBox()
+        self.cache_clean_spin.setRange(1, 20)
+        self.cache_clean_spin.setValue(5)
+        self.cache_clean_spin.setToolTip("每处理多少个文件后自动清理一次缓存")
+        cache_layout.addWidget(self.cache_clean_spin)
+
+        cache_label = BodyLabel("个文件清理一次")
+        cache_label.setStyleSheet("color: #888;")
+        cache_layout.addWidget(cache_label)
+
+        cache_layout.addStretch()
+        layout.addLayout(cache_layout)
+
         return card
 
     def _create_path_settings_card(self):
@@ -878,7 +922,6 @@ class FluentMainWindowV2(FluentWindow):
     def _load_settings(self):
         """加载设置"""
         self.ps_path_edit.setText(self.settings.photoshop_path)
-        self.worker_spin.setValue(self.settings.max_workers)
         self.worker_spin_settings.setValue(self.settings.max_workers)
 
         # 设置主题选择
@@ -892,12 +935,7 @@ class FluentMainWindowV2(FluentWindow):
         # 应用主题到所有组件
         self._apply_theme_to_all_widgets()
 
-        # 更新顶部配置显示
-        ps_text = f"🎨 Photoshop: {self.settings.photoshop_path or '未设置'}"
-        self.ps_config_display.setText(ps_text)
-
-        script_text = f"📋 脚本: {len(self.script_path_map)} 个可用"
-        self.script_config_display.setText(script_text)
+        # 去掉顶部配置显示更新
 
         # 更新其他显示
         self.script_dir_display.setText(str(self.settings.get_script_dir_path()))
@@ -930,9 +968,6 @@ class FluentMainWindowV2(FluentWindow):
         )
         if path:
             self.ps_path_edit.setText(path)
-            # 更新顶部配置显示
-            ps_text = f"🎨 Photoshop: {path}"
-            self.ps_config_display.setText(ps_text)
             self._add_log("info", f"Photoshop 路径已设置: {path}")
 
     def _refresh_scripts(self):
@@ -999,10 +1034,6 @@ class FluentMainWindowV2(FluentWindow):
             # 更新统计
             self.script_stats_label.setText(f"找到 {len(script_items)} 个脚本")
 
-            # 更新顶部配置显示
-            script_text = f"📋 脚本: {len(script_items)} 个可用"
-            self.script_config_display.setText(script_text)
-
             # 恢复上次选择的脚本
             if self.settings.last_script:
                 index = self.script_combo.findText(self.settings.last_script)
@@ -1050,29 +1081,88 @@ class FluentMainWindowV2(FluentWindow):
         )
 
         if folder:
-            folder_path = Path(folder)
-            psd_files = list(folder_path.rglob("*.psd"))
+            self._add_folder_path(folder)
 
-            if psd_files:
-                for file in psd_files:
-                    if str(file) not in self.file_list:
-                        self.file_list.append(str(file))
-                        self._add_file_to_tree(str(file))
+    def _add_folder_path(self, folder):
+        """添加文件夹路径"""
+        folder_path = Path(folder)
+        psd_files = list(folder_path.rglob("*.psd"))
 
-                self._update_stats()
-                self._add_log("info", f"从文件夹添加了 {len(psd_files)} 个 PSD 文件")
+        if psd_files:
+            for file in psd_files:
+                if str(file) not in self.file_list:
+                    self.file_list.append(str(file))
+                    self._add_file_to_tree(str(file))
+
+            self._update_stats()
+            self._add_log("info", f"从文件夹添加了 {len(psd_files)} 个 PSD 文件")
+        else:
+            self._show_warning("未找到文件", "该文件夹中没有 PSD 文件")
+
+    def _handle_dropped_files(self, file_paths):
+        """处理拖放的文件"""
+        added_count = 0
+        for path in file_paths:
+            path_obj = Path(path)
+            if path_obj.is_dir():
+                self._add_folder_path(path)
+            elif path_obj.suffix.lower() == '.psd':
+                if path not in self.file_list:
+                    self.file_list.append(path)
+                    self._add_file_to_tree(path)
+                    added_count += 1
+        
+        if added_count > 0:
+            self._update_stats()
+            self._add_log("info", f"拖放添加了 {added_count} 个文件")
+            self._show_info("文件已添加", f"成功添加 {added_count} 个文件")
+
+    def _filter_files(self, text):
+        """搜索过滤文件"""
+        text = text.lower().strip()
+        
+        # 显示/隐藏匹配的行
+        for i in range(self.file_tree.topLevelItemCount()):
+            item = self.file_tree.topLevelItem(i)
+            if not text:
+                item.setHidden(False)
             else:
-                self._show_warning("未找到文件", "该文件夹中没有 PSD 文件")
+                file_name = item.text(0).lower()
+                file_path = item.text(2).lower()
+                item.setHidden(text not in file_name and text not in file_path)
 
-    def _add_file_to_tree(self, file_path):
+    def _add_file_to_tree(self, file_path, status='pending'):
         """添加文件到树形列表"""
         path = Path(file_path)
 
         item = QTreeWidgetItem(self.file_tree)
         item.setText(0, path.name)
-        item.setText(1, "待处理")
+        item.setText(1, self._get_status_text(status))
         item.setText(2, str(path))
-        item.setIcon(0, FluentIcon.PHOTO.icon())
+        item.setData(0, Qt.UserRole, {'path': str(path), 'status': status})
+        item.setIcon(0, FILE_STATUS_ICON.get(status, FluentIcon.PHOTO).icon())
+
+    def _get_status_text(self, status):
+        """获取状态显示文本"""
+        status_map = {
+            'pending': '待处理',
+            'processing': '处理中',
+            'success': '成功',
+            'error': '失败'
+        }
+        return status_map.get(status, '待处理')
+
+    def _update_file_status(self, file_path, status):
+        """更新文件状态"""
+        for i in range(self.file_tree.topLevelItemCount()):
+            item = self.file_tree.topLevelItem(i)
+            data = item.data(0, Qt.UserRole)
+            if data and data.get('path') == file_path:
+                item.setText(1, self._get_status_text(status))
+                item.setIcon(0, FILE_STATUS_ICON.get(status, FluentIcon.PHOTO).icon())
+                data['status'] = status
+                item.setData(0, Qt.UserRole, data)
+                break
 
     def _show_file_context_menu(self, pos):
         """显示文件列表右键菜单"""
@@ -1156,7 +1246,107 @@ class FluentMainWindowV2(FluentWindow):
     def _update_stats(self):
         """更新统计信息"""
         total = len(self.file_list)
-        self.stats_label.setText(f"{total}")
+        self.stats_label.setText(f"{total} 个文件")
+
+    def _launch_photoshop(self):
+        """启动Photoshop并获取暂存盘信息"""
+        photoshop_path = self.ps_path_edit.text()
+        if not photoshop_path:
+            self._show_warning("请设置 Photoshop 路径", "请先设置 Photoshop.exe 的路径")
+            return
+
+        if not Path(photoshop_path).exists():
+            self._show_warning("Photoshop 路径无效", f"文件不存在: {photoshop_path}")
+            return
+
+        self._add_log("info", "正在启动 Photoshop...")
+        
+        # 尝试连接或启动Photoshop
+        try:
+            # 先尝试连接已运行的PS
+            success, msg = self.processor.controller.connect(launch_if_needed=True)
+            if success:
+                self._add_log("success", f"Photoshop 已就绪: {msg}")
+                
+                # 测试基本连接
+                try:
+                    ps_name = self.processor.controller._photoshop.Name
+                    self._add_log("info", f"Photoshop 版本: {ps_name}")
+                except Exception as e:
+                    self._add_log("warning", f"无法获取Photoshop名称: {e}")
+                
+                # 更新暂存盘信息
+                self._update_scratch_disk_info()
+                
+                # 显示成功信息
+                self._show_info("Photoshop 已启动", "Photoshop 已成功启动并连接")
+            else:
+                self._show_error("启动失败", f"无法启动 Photoshop: {msg}")
+                self._add_log("error", f"启动 Photoshop 失败: {msg}")
+        except Exception as e:
+            self._show_error("启动失败", f"启动 Photoshop 时出错: {e}")
+            self._add_log("error", f"启动 Photoshop 出错: {e}")
+
+    def _update_scratch_disk_info(self):
+        """更新暂存盘信息"""
+        try:
+            # 先检查是否已连接
+            if not self.processor.controller.is_connected():
+                self.scratch_progress_text.setText("未连接到 Photoshop")
+                self.scratch_progress_bar.setValue(0)
+                return
+            
+            success, info = self.processor.controller.get_scratch_disks_info()
+            if success:
+                self.logger.info(f"暂存盘信息: {info}")
+                # 解析暂存盘信息，格式类似 "C:\: 45.2GB 可用 / 共 100.0GB (55%已用)"
+                self.scratch_progress_text.setText(info)
+                
+                # 尝试提取百分比，格式是 "(55%已用)"
+                import re
+                match = re.search(r'\((\d+)%', info)
+                if match:
+                    percent = int(match.group(1))
+                    self.scratch_progress_bar.setValue(percent)
+                    
+                    # 根据使用率设置颜色
+                    if percent < 50:
+                        color = "#6bcf7f"  # 绿色
+                    elif percent < 80:
+                        color = "#ffb84d"  # 橙色
+                    else:
+                        color = "#ff6b6b"  # 红色
+                    
+                    is_dark = self.settings.theme == "dark"
+                    bg_color = "#252525" if is_dark else "#fafafa"
+                    border_color = "#3d3d3d" if is_dark else "#e0e0e0"
+                    
+                    self.scratch_progress_bar.setStyleSheet(f"""
+                        QProgressBar {{
+                            border: 1px solid {border_color};
+                            border-radius: 4px;
+                            text-align: center;
+                            background-color: {bg_color};
+                            font-size: 10px;
+                            color: #666;
+                        }}
+                        QProgressBar::chunk {{
+                            background-color: {color};
+                            border-radius: 3px;
+                        }}
+                    """)
+                else:
+                    # 如果无法提取百分比，显示默认值
+                    self.scratch_progress_bar.setValue(0)
+                    self.logger.warning(f"无法解析暂存盘百分比: {info}")
+            else:
+                self.scratch_progress_text.setText("无法获取暂存盘信息")
+                self.scratch_progress_bar.setValue(0)
+                self.logger.warning("获取暂存盘信息失败")
+        except Exception as e:
+            self.scratch_progress_text.setText(f"获取失败: {str(e)}")
+            self.scratch_progress_bar.setValue(0)
+            self.logger.error(f"更新暂存盘信息时出错: {e}")
 
     def _start_processing(self):
         """开始处理"""
@@ -1187,19 +1377,12 @@ class FluentMainWindowV2(FluentWindow):
 
         # 更新设置
         self.settings.photoshop_path = photoshop_path
-        self.settings.max_workers = self.worker_spin.value()
         self.settings.last_script = current_script
         self.settings.save()
 
         # 保存当前脚本选择到配置，下次启动自动恢复
         self.settings.last_script = current_script
         self.settings.save()
-
-        # 更新顶部配置显示
-        ps_text = f"🎨 Photoshop: {photoshop_path}"
-        self.ps_config_display.setText(ps_text)
-        script_text = f"📋 脚本: {current_script}"
-        self.script_config_display.setText(script_text)
 
         # 重置进度显示
         self.progress_bar.setValue(0)
@@ -1246,58 +1429,148 @@ class FluentMainWindowV2(FluentWindow):
 
             self._reset_processing_ui()
 
-    def _on_progress_update(self, message, current, total):
-        """进度更新 - 只更新两个进度条"""
-        if total > 0:
+    def _on_progress_update(self, message, current, total, total_files):
+        """进度更新 - 更新两个进度条
+        
+        Args:
+            message: 进度消息
+            current: 当前进度
+            total: 当前阶段的总数（4表示文件阶段，total_files表示总体进度）
+            total_files: 总文件数
+        """
+        # 每处理3个文件更新一次暂存盘信息
+        if total == total_files and current % 3 == 0:
+            self._update_scratch_disk_info()
+        
+        # 判断是总体进度还是单文件阶段
+        is_file_stage = (total == 4 and total_files > 0)
+        
+        if is_file_stage:
+            # 单文件处理阶段 (total=4)
+            # current: 0=打开, 1=执行脚本, 2=保存, 3=完成
+            # 需要知道当前是第几个文件
+            # 从消息中提取文件名
+            file_name = ""
+            if " - " in message:
+                file_name = message.split(" - ")[0]
+            
+            # 找到当前文件在列表中的索引
+            current_file_index = -1
+            if file_name:
+                for i, f in enumerate(self.file_list):
+                    if file_name in f:
+                        current_file_index = i
+                        break
+            
+            if current_file_index >= 0:
+                # 计算总体进度：已完成文件数 + 当前文件的阶段进度
+                completed_files = current_file_index
+                stage_percent = (current + 1) * 25  # 25%, 50%, 75%, 100%
+                overall_percent = int((completed_files + stage_percent / 100) / total_files * 100)
+                
+                # 主进度条 - 显示总体进度
+                self.progress_bar.setValue(overall_percent)
+                self.progress_bar.setFormat(f"总进度: {current_file_index + 1}/{total_files} ({overall_percent}%)")
+                
+                # 详细进度条 - 显示当前文件的处理阶段
+                self.progress_detail_bar.setValue(stage_percent)
+                self.progress_detail_bar.setFormat(f"当前文件: {message}")
+                
+                # 更新当前处理文件的状态
+                try:
+                    current_file = self.file_list[current_file_index]
+                    if current_file:
+                        self._update_file_status(current_file, 'processing')
+                except:
+                    pass
+                
+                # 根据主题调整进度条颜色
+                self._update_progress_bar_style(overall_percent)
+            else:
+                # 无法确定文件索引，显示基本信息
+                self.progress_detail_bar.setValue((current + 1) * 25)
+                self.progress_detail_bar.setFormat(f"当前文件: {message}")
+                
+        elif total > 0 and total == total_files:
+            # 总体进度（文件级别的）
             percent = int((current / total) * 100)
-
+            
             # 主进度条 - 显示总体进度
             self.progress_bar.setValue(percent)
-            self.progress_bar.setFormat(f"{message} - {current}/{total} %p%")
-
-            # 详细进度条 - 显示当前文件进度（绿色）
-            self.progress_detail_bar.setValue(100)  # 当前文件处理完成
-            self.progress_detail_bar.setFormat(f"{message}")
-
-            # 根据进度改变主进度条颜色
-            if percent < 30:
-                color = "#ff6b6b"  # 红色
-            elif percent < 70:
-                color = "#ffd93d"  # 黄色
-            else:
-                color = "#6bcf7f"  # 绿色
-
-            self.progress_bar.setStyleSheet(f"""
-                QProgressBar {{
-                    border: 1px solid #e0e0e0;
-                    border-radius: 6px;
-                    text-align: center;
-                    background-color: #fafafa;
-                    font-size: 11px;
-                    font-weight: 600;
-                    color: #333;
-                }}
-                QProgressBar::chunk {{
-                    background-color: {color};
-                    border-radius: 5px;
-                }}
-            """)
+            self.progress_bar.setFormat(f"总进度: {current}/{total} ({percent}%)")
+            
+            # 详细进度条 - 显示当前文件处理状态
+            self.progress_detail_bar.setValue(100)
+            self.progress_detail_bar.setFormat(f"当前文件: {message}")
+            
+            # 更新当前处理文件的状态
+            if message and current <= len(self.file_list):
+                try:
+                    current_file = self.file_list[current - 1] if current > 0 else ""
+                    if current_file:
+                        self._update_file_status(current_file, 'processing')
+                except:
+                    pass
+            
+            # 根据主题调整进度条颜色
+            self._update_progress_bar_style(percent)
         else:
-            # 未知总数的情况
+            # 未知进度的情况
             self.progress_bar.setValue(0)
-            self.progress_bar.setFormat(f"{message} - 处理中... %p%")
-            self.progress_detail_bar.setValue(50)  # 不确定进度时显示50%
+            self.progress_bar.setFormat(f"{message} - 处理中...")
+            self.progress_detail_bar.setValue(50)
             self.progress_detail_bar.setFormat("处理中...")
+
+    def _update_progress_bar_style(self, percent):
+        """根据进度和主题更新进度条样式"""
+        is_dark = self.settings.theme == "dark"
+        
+        # 根据进度选择颜色（更柔和的配色）
+        if percent < 30:
+            color = "#ffb84d"  # 橙色 - 警告色
+        elif percent < 70:
+            color = "#ffd93d"  # 黄色 - 进行中
+        else:
+            color = "#6bcf7f"  # 绿色 - 完成
+        
+        # 背景色根据主题调整
+        bg_color = "#252525" if is_dark else "#fafafa"
+        text_color = "#d4d4d4" if is_dark else "#333"
+        border_color = "#3d3d3d" if is_dark else "#e0e0e0"
+        
+        self.progress_bar.setStyleSheet(f"""
+            QProgressBar {{
+                border: 2px solid {border_color};
+                border-radius: 8px;
+                text-align: center;
+                background-color: {bg_color};
+                font-size: 12px;
+                font-weight: 600;
+                color: {text_color};
+            }}
+            QProgressBar::chunk {{
+                background-color: {color};
+                border-radius: 6px;
+            }}
+        """)
 
     def _on_log_update(self, level, message):
         """日志更新"""
         self._add_log(level, message)
 
-    def _on_processing_finished(self, success, message):
+    def _on_processing_finished(self, success, message, size_before=0, size_after=0):
         """处理完成"""
+        # 更新所有文件状态为完成
+        for file_path in self.file_list:
+            status = 'success' if success else 'error'
+            self._update_file_status(file_path, status)
+        
         if success:
             self._add_log("success", f"处理完成: {message}")
-            self._show_info("处理完成", message)
+            
+            # 显示总结弹窗
+            self._show_summary_dialog(size_before, size_after, message)
+            
             self.progress_bar.setStyleSheet("""
                 QProgressBar {
                     border: 1px solid #e0e0e0;
@@ -1333,6 +1606,48 @@ class FluentMainWindowV2(FluentWindow):
             """)
 
         self._reset_processing_ui()
+
+    def _format_size(self, size: int) -> str:
+        """格式化文件大小"""
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if size < 1024:
+                return f"{size:.2f} {unit}"
+            size /= 1024
+        return f"{size:.2f} TB"
+
+    def _show_summary_dialog(self, size_before, size_after, message):
+        """显示处理总结弹窗"""
+        size_before_str = self._format_size(size_before)
+        size_after_str = self._format_size(size_after)
+        
+        size_diff = size_after - size_before
+        if size_diff > 0:
+            size_change = f"+{self._format_size(size_diff)} ↑"
+            color = "#ff6b6b"
+        elif size_diff < 0:
+            size_change = f"{self._format_size(abs(size_diff))} ↓"
+            color = "#6bcf7f"
+        else:
+            size_change = "无变化"
+            color = "#888"
+
+        summary = f"""
+        处理结果: {message}
+        
+        📊 文件大小统计:
+        • 处理前: {size_before_str}
+        • 处理后: {size_after_str}
+        • 大小变化: <span style='color:{color}'>{size_change}</span>
+        """
+
+        from qfluentwidgets import Dialog, MessageBox
+
+        dialog = MessageBox(
+            "处理完成 - 总结报告",
+            summary.strip(),
+            self
+        )
+        dialog.exec()
 
     def _reset_processing_ui(self):
         """重置处理UI"""
@@ -1387,70 +1702,72 @@ class FluentMainWindowV2(FluentWindow):
 
         # 根据当前主题设置样式
         if self.settings.theme == "dark":
-            # 深色主题样式 - 优化视觉反馈
+            # 深色主题样式 - 现代化配色
             dark_stylesheet = """
             /* 基础组件样式 */
             QWidget {
-                background-color: #1e1e1e;
-                color: #d4d4d4;
-                font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+                background-color: #202020;
+                color: #e0e0e0;
+                font-family: 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif;
             }
 
             /* 卡片样式 */
             CardWidget {
                 background-color: #2d2d2d;
-                border-radius: 8px;
-                border: 1px solid #3d3d3d;
-                padding: 12px;
+                border-radius: 10px;
+                border: 1px solid #404040;
+                padding: 16px;
             }
             CardWidget:hover {
                 border: 1px solid #0078d7;
+                box-shadow: 0 2px 8px rgba(0, 120, 215, 0.2);
             }
 
             /* 标签样式 */
             SubtitleLabel {
-                font-size: 22px;
+                font-size: 24px;
                 font-weight: bold;
                 color: #ffffff;
+                letter-spacing: 0.5px;
             }
             StrongBodyLabel {
-                font-size: 14px;
+                font-size: 15px;
                 font-weight: 600;
                 color: #ffffff;
             }
             BodyLabel {
                 font-size: 12px;
-                color: #d4d4d4;
+                color: #e0e0e0;
             }
 
             /* 按钮样式 */
             PrimaryPushButton {
                 font-size: 13px;
                 font-weight: 600;
-                padding: 8px 16px;
-                border-radius: 6px;
-                background-color: #0078d7;
+                padding: 10px 18px;
+                border-radius: 8px;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #0078d7, stop:1 #005a9e);
                 color: white;
                 border: none;
             }
             PrimaryPushButton:hover {
-                background-color: #106ebe;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #106ebe, stop:1 #004578);
             }
             PrimaryPushButton:pressed {
-                background-color: #005a9e;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #005a9e, stop:1 #003d5a);
             }
             PrimaryPushButton:disabled {
-                background-color: #3a3a3a;
-                color: #888;
+                background: #3a3a3a;
+                color: #666;
             }
 
             PushButton {
                 font-size: 13px;
-                padding: 8px 16px;
-                border-radius: 6px;
-                border: 1px solid #3d3d3d;
+                padding: 10px 18px;
+                border-radius: 8px;
+                border: 1px solid #404040;
                 background-color: #2d2d2d;
-                color: #d4d4d4;
+                color: #e0e0e0;
             }
             PushButton:hover {
                 background-color: #3d3d3d;
@@ -1468,25 +1785,25 @@ class FluentMainWindowV2(FluentWindow):
             /* 输入框样式 */
             LineEdit {
                 font-size: 12px;
-                padding: 6px 10px;
-                border-radius: 6px;
-                border: 1px solid #3d3d3d;
+                padding: 8px 12px;
+                border-radius: 8px;
+                border: 1px solid #404040;
                 background-color: #252525;
-                color: #d4d4d4;
+                color: #e0e0e0;
                 selection-background-color: #0078d7;
             }
             LineEdit:focus {
-                border: 1px solid #0078d7;
+                border: 2px solid #0078d7;
             }
 
             /* 组合框样式 */
             ComboBox {
                 font-size: 12px;
-                padding: 6px 10px;
-                border-radius: 6px;
-                border: 1px solid #3d3d3d;
+                padding: 8px 12px;
+                border-radius: 8px;
+                border: 1px solid #404040;
                 background-color: #252525;
-                color: #d4d4d4;
+                color: #e0e0e0;
             }
             ComboBox:hover {
                 border: 1px solid #0078d7;
@@ -1498,69 +1815,81 @@ class FluentMainWindowV2(FluentWindow):
             /* 数字输入框样式 */
             SpinBox {
                 font-size: 12px;
-                padding: 4px 8px;
-                border-radius: 6px;
-                border: 1px solid #3d3d3d;
+                padding: 6px 10px;
+                border-radius: 8px;
+                border: 1px solid #404040;
                 background-color: #252525;
-                color: #d4d4d4;
+                color: #e0e0e0;
             }
             SpinBox:focus {
-                border: 1px solid #0078d7;
+                border: 2px solid #0078d7;
             }
 
             /* 树形列表样式 */
             TreeWidget {
                 background-color: #252525;
-                border: 1px solid #3d3d3d;
-                border-radius: 6px;
+                border: 2px solid #404040;
+                border-radius: 10px;
                 font-size: 12px;
+                gridline-color: #404040;
+            }
+            TreeWidget::header {
+                background-color: #2d2d2d;
+                padding: 10px;
+                border: none;
+                border-bottom: 2px solid #404040;
+                border-radius: 8px 8px 0 0;
+                font-weight: 600;
+                color: #ffffff;
             }
             TreeWidget::item {
-                padding: 6px 8px;
-                height: 28px;
+                padding: 8px 12px;
+                height: 34px;
+                border-bottom: 1px solid #353535;
+                background-color: #252525;
             }
             TreeWidget::item:hover {
                 background-color: #3d3d3d;
             }
             TreeWidget::item:selected {
-                background-color: #0078d7;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #0078d7, stop:1 #005a9e);
                 color: white;
-                border-radius: 3px;
+                border-radius: 0;
             }
             TreeWidget::item:selected:!active {
                 background-color: #2d2d2d;
-                color: #d4d4d4;
+                color: #e0e0e0;
             }
 
             /* 文本编辑器样式 */
             TextEdit {
-                background-color: #1e1e1e;
-                border: 1px solid #3d3d3d;
-                border-radius: 6px;
-                padding: 8px;
-                font-family: Consolas, monospace;
+                background-color: #1a1a1a;
+                border: 2px solid #404040;
+                border-radius: 10px;
+                padding: 12px;
+                font-family: 'Consolas', 'Monaco', monospace;
                 font-size: 12px;
-                color: #d4d4d4;
+                color: #e0e0e0;
             }
 
             /* 进度条样式 */
             QProgressBar {
-                border: 2px solid #3d3d3d;
-                border-radius: 8px;
+                border: 2px solid #404040;
+                border-radius: 10px;
                 text-align: center;
                 background-color: #252525;
                 font-size: 12px;
                 font-weight: 600;
-                color: #d4d4d4;
+                color: #e0e0e0;
             }
             QProgressBar::chunk {
-                background-color: qlineargradient(
+                background: qlineargradient(
                     x1:0, y1:0, x2:1, y2:0,
                     stop:0 #0078d7,
                     stop:0.5 #106ebe,
                     stop:1 #005a9e
                 );
-                border-radius: 6px;
+                border-radius: 8px;
             }
 
             /* 滚动区域 */
@@ -1570,82 +1899,84 @@ class FluentMainWindowV2(FluentWindow):
 
             /* 分隔线 */
             QFrame {
-                border: 1px solid #3d3d3d;
+                border: 1px solid #404040;
             }
             """
             app.setStyleSheet(dark_stylesheet)
         else:
-            # 浅色主题样式 - 优化视觉反馈
+            # 浅色主题样式 - 现代化配色
             light_stylesheet = """
             /* 基础组件样式 */
             QWidget {
-                background-color: #f0f0f0;
-                color: #000000;
-                font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+                background-color: #f5f7fa;
+                color: #2c3e50;
+                font-family: 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif;
             }
 
             /* 卡片样式 */
             CardWidget {
                 background-color: #ffffff;
-                border-radius: 8px;
-                border: 1px solid #e0e0e0;
-                padding: 12px;
+                border-radius: 10px;
+                border: 1px solid #e8eaed;
+                padding: 16px;
             }
             CardWidget:hover {
                 border: 1px solid #0078d7;
+                box-shadow: 0 2px 12px rgba(0, 120, 215, 0.15);
             }
 
             /* 标签样式 */
             SubtitleLabel {
-                font-size: 22px;
+                font-size: 24px;
                 font-weight: bold;
-                color: #000000;
+                color: #1a1a1a;
+                letter-spacing: 0.5px;
             }
             StrongBodyLabel {
-                font-size: 14px;
+                font-size: 15px;
                 font-weight: 600;
-                color: #000000;
+                color: #1a1a1a;
             }
             BodyLabel {
                 font-size: 12px;
-                color: #333333;
+                color: #4a4a4a;
             }
 
             /* 按钮样式 */
             PrimaryPushButton {
                 font-size: 13px;
                 font-weight: 600;
-                padding: 8px 16px;
-                border-radius: 6px;
-                background-color: #0078d7;
+                padding: 10px 18px;
+                border-radius: 8px;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #0078d7, stop:1 #005a9e);
                 color: white;
                 border: none;
             }
             PrimaryPushButton:hover {
-                background-color: #106ebe;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #106ebe, stop:1 #004578);
             }
             PrimaryPushButton:pressed {
-                background-color: #005a9e;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #005a9e, stop:1 #003d5a);
             }
             PrimaryPushButton:disabled {
-                background-color: #cccccc;
-                color: #666;
+                background: #d0d0d0;
+                color: #888;
             }
 
             PushButton {
                 font-size: 13px;
-                padding: 8px 16px;
-                border-radius: 6px;
+                padding: 10px 18px;
+                border-radius: 8px;
                 border: 1px solid #e0e0e0;
                 background-color: #ffffff;
-                color: #333333;
+                color: #2c3e50;
             }
             PushButton:hover {
-                background-color: #f5f5f5;
+                background-color: #f8f9fa;
                 border-color: #0078d7;
             }
             PushButton:pressed {
-                background-color: #e0e0e0;
+                background-color: #e9ecef;
             }
             PushButton:disabled {
                 border-color: #e0e0e0;
@@ -1656,25 +1987,25 @@ class FluentMainWindowV2(FluentWindow):
             /* 输入框样式 */
             LineEdit {
                 font-size: 12px;
-                padding: 6px 10px;
-                border-radius: 6px;
+                padding: 8px 12px;
+                border-radius: 8px;
                 border: 1px solid #e0e0e0;
                 background-color: #ffffff;
-                color: #333333;
+                color: #2c3e50;
                 selection-background-color: #0078d7;
             }
             LineEdit:focus {
-                border: 1px solid #0078d7;
+                border: 2px solid #0078d7;
             }
 
             /* 组合框样式 */
             ComboBox {
                 font-size: 12px;
-                padding: 6px 10px;
-                border-radius: 6px;
+                padding: 8px 12px;
+                border-radius: 8px;
                 border: 1px solid #e0e0e0;
                 background-color: #ffffff;
-                color: #333333;
+                color: #2c3e50;
             }
             ComboBox:hover {
                 border: 1px solid #0078d7;
@@ -1686,34 +2017,46 @@ class FluentMainWindowV2(FluentWindow):
             /* 数字输入框样式 */
             SpinBox {
                 font-size: 12px;
-                padding: 4px 8px;
-                border-radius: 6px;
+                padding: 6px 10px;
+                border-radius: 8px;
                 border: 1px solid #e0e0e0;
                 background-color: #ffffff;
-                color: #333333;
+                color: #2c3e50;
             }
             SpinBox:focus {
-                border: 1px solid #0078d7;
+                border: 2px solid #0078d7;
             }
 
             /* 树形列表样式 */
             TreeWidget {
                 background-color: #ffffff;
-                border: 1px solid #e0e0e0;
-                border-radius: 6px;
+                border: 2px solid #e0e0e0;
+                border-radius: 10px;
                 font-size: 12px;
+                gridline-color: #e8eaed;
+            }
+            TreeWidget::header {
+                background-color: #f8f9fa;
+                padding: 10px;
+                border: none;
+                border-bottom: 2px solid #e0e0e0;
+                border-radius: 8px 8px 0 0;
+                font-weight: 600;
+                color: #1a1a1a;
             }
             TreeWidget::item {
-                padding: 6px 8px;
-                height: 28px;
+                padding: 8px 12px;
+                height: 34px;
+                border-bottom: 1px solid #f0f0f0;
+                background-color: #ffffff;
             }
             TreeWidget::item:hover {
-                background-color: #f5f5f5;
+                background-color: #f8f9fa;
             }
             TreeWidget::item:selected {
-                background-color: #0078d7;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #0078d7, stop:1 #005a9e);
                 color: white;
-                border-radius: 3px;
+                border-radius: 0;
             }
             TreeWidget::item:selected:!active {
                 background-color: #c7e0f4;
@@ -1723,32 +2066,32 @@ class FluentMainWindowV2(FluentWindow):
             /* 文本编辑器样式 */
             TextEdit {
                 background-color: #ffffff;
-                border: 1px solid #e0e0e0;
-                border-radius: 6px;
-                padding: 8px;
-                font-family: Consolas, monospace;
+                border: 2px solid #e0e0e0;
+                border-radius: 10px;
+                padding: 12px;
+                font-family: 'Consolas', 'Monaco', monospace;
                 font-size: 12px;
-                color: #333333;
+                color: #2c3e50;
             }
 
             /* 进度条样式 */
             QProgressBar {
                 border: 2px solid #e0e0e0;
-                border-radius: 8px;
+                border-radius: 10px;
                 text-align: center;
                 background-color: #fafafa;
                 font-size: 12px;
                 font-weight: 600;
-                color: #333333;
+                color: #2c3e50;
             }
             QProgressBar::chunk {
-                background-color: qlineargradient(
+                background: qlineargradient(
                     x1:0, y1:0, x2:1, y2:0,
                     stop:0 #0078d7,
                     stop:0.5 #106ebe,
                     stop:1 #005a9e
                 );
-                border-radius: 6px;
+                border-radius: 8px;
             }
 
             /* 滚动区域 */
@@ -1787,12 +2130,12 @@ class FluentMainWindowV2(FluentWindow):
         self.settings.backup_dir = self.backup_dir_edit.text()
         self.settings.max_workers = self.worker_spin_settings.value()
 
-        # 更新文件处理页面的并发数
-        self.worker_spin.setValue(self.settings.max_workers)
+        # 更新处理器的缓存清理间隔
+        self.processor.cache_clean_interval = self.cache_clean_spin.value()
 
         if self.settings.save():
-            self._show_info("设置已保存", "设置已成功保存")
-            self._add_log("info", "设置已保存")
+            self._show_info("设置已保存", f"设置已成功保存\n缓存清理间隔: 每 {self.cache_clean_spin.value()} 个文件")
+            self._add_log("info", f"设置已保存 - 缓存清理间隔: 每 {self.cache_clean_spin.value()} 个文件")
         else:
             self._show_error("保存失败", "设置保存失败")
 
