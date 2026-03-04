@@ -20,25 +20,38 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      shell: pwsh
       
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.13'
-      shell: pwsh
+        
+    - name: List files
+      run: |
+        Write-Host "Current directory:"
+        Get-ChildItem
+        Write-Host "GitHub directory:"
+        Get-ChildItem .github
         
     - name: Install dependencies
-      run: python -m pip install --upgrade pip; pip install pyinstaller PyQt5 PyQt-Fluent-Widgets pywin32 pillow
-      shell: pwsh
+      run: |
+        Write-Host "Installing dependencies..."
+        python -m pip install --upgrade pip
+        pip install pyinstaller PyQt5 PyQt-Fluent-Widgets pywin32 pillow
+        Write-Host "Dependencies installed successfully"
         
     - name: Build all versions
-      run: python .github/build.py
-      shell: pwsh
+      run: |
+        Write-Host "Starting build process..."
+        python .github/build.py
+        Write-Host "Build process completed"
         
     - name: Get version
       id: version
@@ -48,12 +61,14 @@ jobs:
           $version = "dev-${{ github.run_number }}"
         }
         Write-Output "version=$version" >> $env:GITHUB_OUTPUT
-      shell: pwsh
+        Write-Host "Version: $version"
         
     - name: Create Release Package
       run: |
         $version = "${{ steps.version.outputs.version }}"
         $releaseDir = "dist\PSDBatchProcessor-$version"
+        
+        Write-Host "Creating release package: $releaseDir"
         
         if (Test-Path $releaseDir) {
           Remove-Item -Path $releaseDir -Recurse -Force
@@ -77,7 +92,6 @@ jobs:
         }
         
         Write-Host "Created release package: $releaseDir"
-      shell: pwsh
         
     - name: Zip Release
       run: |
@@ -87,7 +101,6 @@ jobs:
           Compress-Archive -Path "$releaseDir\*" -DestinationPath "$releaseDir.zip"
           Write-Host "Created zip: $releaseDir.zip"
         }
-      shell: pwsh
         
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
@@ -95,7 +108,6 @@ jobs:
         name: PSD-Batch-Processor-${{ steps.version.outputs.version }}
         path: dist/PSDBatchProcessor-${{ steps.version.outputs.version }}.zip
         retention-days: 30
-      shell: pwsh
         
     - name: Create Release
       if: github.event_name == 'push'
@@ -106,4 +118,3 @@ jobs:
         prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      shell: pwsh
