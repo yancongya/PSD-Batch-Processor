@@ -20,101 +20,68 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-    defaults:
-      run:
-        shell: pwsh
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
       
-    - name: Set up Python
-      uses: actions/setup-python@v5
+    - uses: actions/setup-python@v5
       with:
         python-version: '3.13'
         
-    - name: List files
+    - name: Build
       run: |
-        Write-Host "Current directory:"
-        Get-ChildItem
-        Write-Host "GitHub directory:"
-        Get-ChildItem .github
+        $ErrorActionPreference = "Stop"
         
-    - name: Install dependencies
-      run: |
         Write-Host "Installing dependencies..."
-        python -m pip install --upgrade pip
-        pip install pyinstaller PyQt5 PyQt-Fluent-Widgets pywin32 pillow
-        Write-Host "Dependencies installed successfully"
+        python -m pip install --upgrade pip 2>&1 | Write-Host
+        pip install pyinstaller PyQt5 PyQt-Fluent-Widgets pywin32 pillow 2>&1 | Write-Host
         
-    - name: Build all versions
-      run: |
-        Write-Host "Starting build process..."
-        python .github/build.py
-        Write-Host "Build process completed"
+        Write-Host "Building..."
+        python .github/build.py 2>&1 | Write-Host
         
-    - name: Get version
-      id: version
+        Write-Host "Build completed"
+        
+    - name: Create Release
+      id: release
       run: |
         $version = "${{ github.ref_name }}"
         if ([string]::IsNullOrEmpty($version)) {
           $version = "dev-${{ github.run_number }}"
         }
         Write-Output "version=$version" >> $env:GITHUB_OUTPUT
-        Write-Host "Version: $version"
         
-    - name: Create Release Package
-      run: |
-        $version = "${{ steps.version.outputs.version }}"
         $releaseDir = "dist\PSDBatchProcessor-$version"
-        
-        Write-Host "Creating release package: $releaseDir"
         
         if (Test-Path $releaseDir) {
           Remove-Item -Path $releaseDir -Recurse -Force
         }
-        New-Item -ItemType Directory -Path $releaseDir | Out-Null
+        New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
         
-        if (Test-Path "dist\PSDBatchProcessor-Windowed") {
-          Copy-Item -Path "dist\PSDBatchProcessor-Windowed" -Destination "$releaseDir\Windowed" -Recurse
-        }
-        
-        if (Test-Path "dist\PSDBatchProcessor-Console") {
-          Copy-Item -Path "dist\PSDBatchProcessor-Console" -Destination "$releaseDir\Console" -Recurse
-        }
-        
-        if (Test-Path "dist\PSDBatchProcessor-OneFile-Portable") {
-          Copy-Item -Path "dist\PSDBatchProcessor-OneFile-Portable" -Destination "$releaseDir\OneFile" -Recurse
+        $dirs = @("PSDBatchProcessor-Windowed", "PSDBatchProcessor-Console", "PSDBatchProcessor-OneFile-Portable")
+        foreach ($dir in $dirs) {
+          if (Test-Path "dist\$dir") {
+            $targetName = $dir -replace "PSDBatchProcessor-", ""
+            Copy-Item -Path "dist\$dir" -Destination "$releaseDir\$targetName" -Recurse
+          }
         }
         
         if (Test-Path "README.md") {
           Copy-Item -Path "README.md" -Destination $releaseDir
         }
         
-        Write-Host "Created release package: $releaseDir"
+        Compress-Archive -Path "$releaseDir\*" -DestinationPath "$releaseDir.zip"
         
-    - name: Zip Release
-      run: |
-        $version = "${{ steps.version.outputs.version }}"
-        $releaseDir = "dist\PSDBatchProcessor-$version"
-        if (Test-Path $releaseDir) {
-          Compress-Archive -Path "$releaseDir\*" -DestinationPath "$releaseDir.zip"
-          Write-Host "Created zip: $releaseDir.zip"
-        }
-        
-    - name: Upload artifacts
+    - name: Upload
       uses: actions/upload-artifact@v4
       with:
-        name: PSD-Batch-Processor-${{ steps.version.outputs.version }}
-        path: dist/PSDBatchProcessor-${{ steps.version.outputs.version }}.zip
+        name: PSD-Batch-Processor-${{ steps.release.outputs.version }}
+        path: dist/PSDBatchProcessor-${{ steps.release.outputs.version }}.zip
         retention-days: 30
         
-    - name: Create Release
+    - name: GitHub Release
       if: github.event_name == 'push'
       uses: softprops/action-gh-release@v1
       with:
-        files: dist/PSDBatchProcessor-${{ steps.version.outputs.version }}.zip
-        draft: false
-        prerelease: false
+        files: dist/PSDBatchProcessor-${{ steps.release.outputs.version }}.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
