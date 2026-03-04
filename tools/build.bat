@@ -93,52 +93,13 @@ echo.
 cd /d "%PROJECT_DIR%"
 
 REM Define exclude modules
-set EXCLUDE_MODULES=^
-    --exclude-module=torch ^
-    --exclude-module=torchvision ^
-    --exclude-module=torchaudio ^
-    --exclude-module=tensorflow ^
-    --exclude-module=keras ^
-    --exclude-module=scipy ^
-    --exclude-module=numpy ^
-    --exclude-module=sympy ^
-    --exclude-module=onnxruntime ^
-    --exclude-module=selenium ^
-    --exclude-module=playwright ^
-    --exclude-module=requests ^
-    --exclude-module=beautifulsoup4 ^
-    --exclude-module=lxml ^
-    --exclude-module=bs4 ^
-    --exclude-module=pandas ^
-    --exclude-module=matplotlib ^
-    --exclude-module=cv2 ^
-    --exclude-module=opencv-python ^
-    --exclude-module=pytest ^
-    --exclude-module=black ^
-    --exclude-module=flake8 ^
-    --exclude-module=langchain ^
-    --exclude-module=openai ^
-    --exclude-module=anthropic ^
-    --exclude-module=transformers ^
-    --exclude-module=tokenizers ^
-    --exclude-module=huggingface_hub ^
-    --exclude-module=tkinter ^
-    --exclude-module=turtle
+set EXCLUDE_MODULES=--exclude-module=torch --exclude-module=torchvision --exclude-module=torchaudio --exclude-module=tensorflow --exclude-module=keras --exclude-module=scipy --exclude-module=numpy --exclude-module=sympy --exclude-module=onnxruntime --exclude-module=selenium --exclude-module=playwright --exclude-module=requests --exclude-module=beautifulsoup4 --exclude-module=lxml --exclude-module=bs4 --exclude-module=pandas --exclude-module=matplotlib --exclude-module=cv2 --exclude-module=opencv-python --exclude-module=pytest --exclude-module=black --exclude-module=flake8 --exclude-module=langchain --exclude-module=openai --exclude-module=anthropic --exclude-module=transformers --exclude-module=tokenizers --exclude-module=huggingface_hub --exclude-module=tkinter --exclude-module=turtle
 
 REM Define hidden imports
-set HIDDEN_IMPORTS=^
-    --hidden-import=win32com ^
-    --hidden-import=pythoncom ^
-    --hidden-import=PIL ^
-    --hidden-import=customtkinter
+set HIDDEN_IMPORTS=--hidden-import=win32com --hidden-import=pythoncom --hidden-import=PIL --hidden-import=customtkinter
 
 REM Define add data
-set ADD_DATA=^
-    --add-data="docs/guides/START_HERE.txt;docs/guides" ^
-    --add-data="docs/guides/QUICK_REFERENCE.txt;docs/guides" ^
-    --add-data="scripts/production/*.jsx;scripts/production" ^
-    --add-data="scripts/templates/*.jsx;scripts/templates" ^
-    --add-data="scripts/examples/*.jsx;scripts/examples"
+set ADD_DATA=--add-data="docs/guides/START_HERE.txt;docs/guides" --add-data="docs/guides/QUICK_REFERENCE.txt;docs/guides" --add-data="scripts/production/*.jsx;scripts/production" --add-data="scripts/templates/*.jsx;scripts/templates" --add-data="scripts/examples/*.jsx;scripts/examples"
 
 REM Function to copy additional files
 :copy_files
@@ -147,11 +108,9 @@ xcopy /y "%PROJECT_DIR%\README.md" "%OUTPUT_DIR%\" >nul 2>&1
 if not exist "%OUTPUT_DIR%\docs\guides" mkdir "%OUTPUT_DIR%\docs\guides"
 xcopy /y "%PROJECT_DIR%\docs\guides\START_HERE.txt" "%OUTPUT_DIR%\docs\guides\" >nul 2>&1
 xcopy /y "%PROJECT_DIR%\docs\guides\QUICK_REFERENCE.txt" "%OUTPUT_DIR%\docs\guides\" >nul 2>&1
-
 if not exist "%OUTPUT_DIR%\scripts" (
     xcopy /e /i /y "%PROJECT_DIR%\scripts" "%OUTPUT_DIR%\scripts" >nul 2>&1
 )
-
 if not exist "%OUTPUT_DIR%\backups" (
     mkdir "%OUTPUT_DIR%\backups"
 )
@@ -165,15 +124,7 @@ if "%BUILD_WINDOWED%"=="1" (
     echo ========================================
     echo.
 
-    pyinstaller ^
-        --name="PSDBatchProcessor-Windowed" ^
-        --noconsole ^
-        %ADD_DATA% ^
-        %HIDDEN_IMPORTS% ^
-        %EXCLUDE_MODULES% ^
-        --clean ^
-        --noconfirm ^
-        src/main.py
+    pyinstaller --name="PSDBatchProcessor-Windowed" --noconsole %ADD_DATA% %HIDDEN_IMPORTS% %EXCLUDE_MODULES% --clean --noconfirm src/main.py
 
     if errorlevel 1 (
         echo.
@@ -199,15 +150,7 @@ if "%BUILD_CONSOLE%"=="1" (
     echo ========================================
     echo.
 
-    pyinstaller ^
-        --name="PSDBatchProcessor-Console" ^
-        --console ^
-        %ADD_DATA% ^
-        %HIDDEN_IMPORTS% ^
-        %EXCLUDE_MODULES% ^
-        --clean ^
-        --noconfirm ^
-        src/main.py
+    pyinstaller --name="PSDBatchProcessor-Console" --console %ADD_DATA% %HIDDEN_IMPORTS% %EXCLUDE_MODULES% --clean --noconfirm src/main.py
 
     if errorlevel 1 (
         echo.
@@ -225,38 +168,6 @@ if "%BUILD_CONSOLE%"=="1" (
 
 :skip_console
 
-REM Build Console mode
-if "%BUILD_CONSOLE%"=="1" (
-    echo.
-    echo ========================================
-    echo Building Console Mode
-    echo ========================================
-    echo.
-
-    pyinstaller ^
-        --name="PSDBatchProcessor-Console" ^
-        --console ^
-        %ADD_DATA% ^
-        %HIDDEN_IMPORTS% ^
-        %EXCLUDE_MODULES% ^
-        --clean ^
-        --noconfirm ^
-        src/main.py
-
-    if errorlevel 1 (
-        echo.
-        echo [ERROR] Console mode build failed!
-        pause
-        exit /b 1
-    )
-
-    echo.
-    echo [SUCCESS] Console mode build completed!
-    echo.
-
-    call :copy_files "%DIST_DIR%\PSDBatchProcessor-Console"
-)
-
 REM Build One-file mode
 if "%BUILD_ONEFILE%"=="1" (
     echo.
@@ -265,16 +176,7 @@ if "%BUILD_ONEFILE%"=="1" (
     echo ========================================
     echo.
 
-    pyinstaller ^
-        --name="PSDBatchProcessor-OneFile" ^
-        --noconsole ^
-        --onefile ^
-        %ADD_DATA% ^
-        %HIDDEN_IMPORTS% ^
-        %EXCLUDE_MODULES% ^
-        --clean ^
-        --noconfirm ^
-        src/main.py
+    pyinstaller --name="PSDBatchProcessor-OneFile" --noconsole --onefile %ADD_DATA% %HIDDEN_IMPORTS% %EXCLUDE_MODULES% --clean --noconfirm src/main.py
 
     if errorlevel 1 (
         echo.
@@ -311,7 +213,9 @@ if "%BUILD_WINDOWED%"=="1" (
     echo [Windowed Mode]
     echo - Directory: dist\PSDBatchProcessor-Windowed\
     echo - Executable: PSDBatchProcessor-Windowed.exe
-    for %%A in ("%DIST_DIR%\PSDBatchProcessor-Windowed\PSDBatchProcessor-Windowed.exe") do echo - Size: %%~zA bytes
+    if exist "%DIST_DIR%\PSDBatchProcessor-Windowed\PSDBatchProcessor-Windowed.exe" (
+        for %%A in ("%DIST_DIR%\PSDBatchProcessor-Windowed\PSDBatchProcessor-Windowed.exe") do echo - Size: %%~zA bytes
+    )
     echo.
 )
 
@@ -319,7 +223,9 @@ if "%BUILD_CONSOLE%"=="1" (
     echo [Console Mode]
     echo - Directory: dist\PSDBatchProcessor-Console\
     echo - Executable: PSDBatchProcessor-Console.exe
-    for %%A in ("%DIST_DIR%\PSDBatchProcessor-Console\PSDBatchProcessor-Console.exe") do echo - Size: %%~zA bytes
+    if exist "%DIST_DIR%\PSDBatchProcessor-Console\PSDBatchProcessor-Console.exe" (
+        for %%A in ("%DIST_DIR%\PSDBatchProcessor-Console\PSDBatchProcessor-Console.exe") do echo - Size: %%~zA bytes
+    )
     echo.
 )
 
@@ -327,7 +233,9 @@ if "%BUILD_ONEFILE%"=="1" (
     echo [One-file Mode]
     echo - Directory: dist\PSDBatchProcessor-OneFile-Portable\
     echo - Executable: PSDBatchProcessor-OneFile.exe
-    for %%A in ("%DIST_DIR%\PSDBatchProcessor-OneFile-Portable\PSDBatchProcessor-OneFile.exe") do echo - Size: %%~zA bytes
+    if exist "%DIST_DIR%\PSDBatchProcessor-OneFile-Portable\PSDBatchProcessor-OneFile.exe" (
+        for %%A in ("%DIST_DIR%\PSDBatchProcessor-OneFile-Portable\PSDBatchProcessor-OneFile.exe") do echo - Size: %%~zA bytes
+    )
     echo.
 )
 
