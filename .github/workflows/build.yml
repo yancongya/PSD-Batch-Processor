@@ -36,154 +36,47 @@ jobs:
         pip install pyinstaller PyQt5 PyQt-Fluent-Widgets pywin32 pillow
         
     - name: Clean old builds
-      shell: cmd
       run: |
         if exist build rmdir /s /q build
         if exist dist rmdir /s /q dist
         if exist __pycache__ rmdir /s /q __pycache__
         
+    - name: Set environment variables
+      run: |
+        set PYTHONIOENCODING=utf-8
+        echo "PYTHONIOENCODING=utf-8" >> $env:GITHUB_ENV
+        
     - name: Build Windowed Mode
       if: github.event.inputs.build_mode == 'windowed' || github.event.inputs.build_mode == 'all' || github.event_name == 'push'
       run: |
-        python -c "
-        import subprocess
-        import sys
-        
-        cmd = [
-            'pyinstaller',
-            '--name=PSDBatchProcessor-Windowed',
-            '--noconsole',
-            '--add-data=docs/guides/START_HERE.txt;docs/guides',
-            '--add-data=docs/guides/QUICK_REFERENCE.txt;docs/guides',
-            '--add-data=scripts/production/*.jsx;scripts/production',
-            '--add-data=scripts/templates/*.jsx;scripts/templates',
-            '--add-data=scripts/examples/*.jsx;scripts/examples',
-            '--hidden-import=win32com',
-            '--hidden-import=pythoncom',
-            '--hidden-import=PIL',
-            '--hidden-import=customtkinter',
-            '--exclude-module=torch',
-            '--exclude-module=torchvision',
-            '--exclude-module=torchaudio',
-            '--exclude-module=tensorflow',
-            '--exclude-module=keras',
-            '--exclude-module=scipy',
-            '--exclude-module=numpy',
-            '--exclude-module=sympy',
-            '--exclude-module=onnxruntime',
-            '--exclude-module=selenium',
-            '--exclude-module=playwright',
-            '--exclude-module=requests',
-            '--exclude-module=beautifulsoup4',
-            '--exclude-module=lxml',
-            '--exclude-module=bs4',
-            '--exclude-module=pandas',
-            '--exclude-module=matplotlib',
-            '--exclude-module=cv2',
-            '--exclude-module=opencv-python',
-            '--exclude-module=pytest',
-            '--exclude-module=black',
-            '--exclude-module=flake8',
-            '--exclude-module=langchain',
-            '--exclude-module=openai',
-            '--exclude-module=anthropic',
-            '--exclude-module=transformers',
-            '--exclude-module=tokenizers',
-            '--exclude-module=huggingface_hub',
-            '--exclude-module=tkinter',
-            '--exclude-module=turtle',
-            '--clean',
-            '--noconfirm',
-            'src/main.py'
-        ]
-        
-        result = subprocess.run(cmd)
-        sys.exit(result.returncode)
-        "
+        pyinstaller --name=PSDBatchProcessor-Windowed --noconsole --add-data="docs/guides/START_HERE.txt;docs/guides" --add-data="docs/guides/QUICK_REFERENCE.txt;docs/guides" --add-data="scripts/production/*.jsx;scripts/production" --add-data="scripts/templates/*.jsx;scripts/templates" --add-data="scripts/examples/*.jsx;scripts/examples" --hidden-import=win32com --hidden-import=pythoncom --hidden-import=PIL --hidden-import=customtkinter --exclude-module=torch --exclude-module=torchvision --exclude-module=torchaudio --exclude-module=tensorflow --exclude-module=keras --exclude-module=scipy --exclude-module=numpy --exclude-module=sympy --exclude-module=onnxruntime --exclude-module=selenium --exclude-module=playwright --exclude-module=requests --exclude-module=beautifulsoup4 --exclude-module=lxml --exclude-module=bs4 --exclude-module=pandas --exclude-module=matplotlib --exclude-module=cv2 --exclude-module=opencv-python --exclude-module=pytest --exclude-module=black --exclude-module=flake8 --exclude-module=langchain --exclude-module=openai --exclude-module=anthropic --exclude-module=transformers --exclude-module=tokenizers --exclude-module=huggingface_hub --exclude-module=tkinter --exclude-module=turtle --clean --noconfirm src/main.py
         
     - name: Build Console Mode
       if: github.event.inputs.build_mode == 'console' || github.event.inputs.build_mode == 'all'
       run: |
-        python -c "
-        import subprocess
-        import sys
-        
-        cmd = [
-            'pyinstaller',
-            '--name=PSDBatchProcessor-Console',
-            '--console',
-            '--add-data=docs/guides/START_HERE.txt;docs/guides',
-            '--add-data=docs/guides/QUICK_REFERENCE.txt;docs/guides',
-            '--add-data=scripts/production/*.jsx;scripts/production',
-            '--add-data=scripts/templates/*.jsx;scripts/templates',
-            '--add-data=scripts/examples/*.jsx;scripts/examples',
-            '--hidden-import=win32com',
-            '--hidden-import=pythoncom',
-            '--hidden-import=PIL',
-            '--hidden-import=customtkinter',
-            '--exclude-module=torch',
-            '--exclude-module=torchvision',
-            '--exclude-module=torchaudio',
-            '--exclude-module=tensorflow',
-            '--exclude-module=keras',
-            '--exclude-module=scipy',
-            '--exclude-module=numpy',
-            '--exclude-module=sympy',
-            '--exclude-module=onnxruntime',
-            '--exclude-module=selenium',
-            '--exclude-module=playwright',
-            '--exclude-module=requests',
-            '--exclude-module=beautifulsoup4',
-            '--exclude-module=lxml',
-            '--exclude-module=bs4',
-            '--exclude-module=pandas',
-            '--exclude-module=matplotlib',
-            '--exclude-module=cv2',
-            '--exclude-module=opencv-python',
-            '--exclude-module=pytest',
-            '--exclude-module=black',
-            '--exclude-module=flake8',
-            '--exclude-module=langchain',
-            '--exclude-module=openai',
-            '--exclude-module=anthropic',
-            '--exclude-module=transformers',
-            '--exclude-module=tokenizers',
-            '--exclude-module=huggingface_hub',
-            '--exclude-module=tkinter',
-            '--exclude-module=turtle',
-            '--clean',
-            '--noconfirm',
-            'src/main.py'
-        ]
-        
-        result = subprocess.run(cmd)
-        sys.exit(result.returncode)
-        "
+        pyinstaller --name=PSDBatchProcessor-Console --console --add-data="docs/guides/START_HERE.txt;docs/guides" --add-data="docs/guides/QUICK_REFERENCE.txt;docs/guides" --add-data="scripts/production/*.jsx;scripts/production" --add-data="scripts/templates/*.jsx;scripts/templates" --add-data="scripts/examples/*.jsx;scripts/examples" --hidden-import=win32com --hidden-import=pythoncom --hidden-import=PIL --hidden-import=customtkinter --exclude-module=torch --exclude-module=torchvision --exclude-module=torchaudio --exclude-module=tensorflow --exclude-module=keras --exclude-module=scipy --exclude-module=numpy --exclude-module=sympy --exclude-module=onnxruntime --exclude-module=selenium --exclude-module=playwright --exclude-module=requests --exclude-module=beautifulsoup4 --exclude-module=lxml --exclude-module=bs4 --exclude-module=pandas --exclude-module=matplotlib --exclude-module=cv2 --exclude-module=opencv-python --exclude-module=pytest --exclude-module=black --exclude-module=flake8 --exclude-module=langchain --exclude-module=openai --exclude-module=anthropic --exclude-module=transformers --exclude-module=tokenizers --exclude-module=huggingface_hub --exclude-module=tkinter --exclude-module=turtle --clean --noconfirm src/main.py
         
     - name: Build One-file Mode
       if: github.event.inputs.build_mode == 'onefile' || github.event.inputs.build_mode == 'all'
-      shell: cmd
       run: |
         pyinstaller --name=PSDBatchProcessor-OneFile --noconsole --onefile --add-data="docs/guides/START_HERE.txt;docs/guides" --add-data="docs/guides/QUICK_REFERENCE.txt;docs/guides" --add-data="scripts/production/*.jsx;scripts/production" --add-data="scripts/templates/*.jsx;scripts/templates" --add-data="scripts/examples/*.jsx;scripts/examples" --hidden-import=win32com --hidden-import=pythoncom --hidden-import=PIL --hidden-import=customtkinter --exclude-module=torch --exclude-module=torchvision --exclude-module=torchaudio --exclude-module=tensorflow --exclude-module=keras --exclude-module=scipy --exclude-module=numpy --exclude-module=sympy --exclude-module=onnxruntime --exclude-module=selenium --exclude-module=playwright --exclude-module=requests --exclude-module=beautifulsoup4 --exclude-module=lxml --exclude-module=bs4 --exclude-module=pandas --exclude-module=matplotlib --exclude-module=cv2 --exclude-module=opencv-python --exclude-module=pytest --exclude-module=black --exclude-module=flake8 --exclude-module=langchain --exclude-module=openai --exclude-module=anthropic --exclude-module=transformers --exclude-module=tokenizers --exclude-module=huggingface_hub --exclude-module=tkinter --exclude-module=turtle --clean --noconfirm src/main.py
         if not exist "dist\PSDBatchProcessor-OneFile-Portable" mkdir "dist\PSDBatchProcessor-OneFile-Portable"
         move /y "dist\PSDBatchProcessor-OneFile.exe" "dist\PSDBatchProcessor-OneFile-Portable\"
         
     - name: Copy additional files
-      shell: pwsh
       run: |
-        $env:PYTHONIOENCODING = "utf-8"
         python tools/build_all.py
         
     - name: Get version
       id: version
       shell: pwsh
       run: |
-        if ("${{ github.event_name }}" -eq "push") {
-          "version=${{ github.ref_name }}" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-        } else {
-          "version=dev-${{ github.run_number }}" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        $version = "${{ github.ref_name }}"
+        if (-not $version) {
+          $version = "dev-${{ github.run_number }}"
         }
-      
+        Add-Content -Path $env:GITHUB_OUTPUT -Value "version=$version"
+        
     - name: Create Release Package
       shell: pwsh
       run: |
@@ -192,28 +85,28 @@ jobs:
         
         # Create release directory
         if (Test-Path $releaseDir) {
-            Remove-Item -Recurse -Force $releaseDir
+          Remove-Item -Recurse -Force $releaseDir
         }
         New-Item -ItemType Directory -Path $releaseDir | Out-Null
         
         # Copy Windowed mode
         if (Test-Path "dist/PSDBatchProcessor-Windowed") {
-            Copy-Item -Recurse "dist/PSDBatchProcessor-Windowed" "$releaseDir/Windowed"
+          Copy-Item -Recurse "dist/PSDBatchProcessor-Windowed" "$releaseDir/Windowed"
         }
         
         # Copy Console mode
         if (Test-Path "dist/PSDBatchProcessor-Console") {
-            Copy-Item -Recurse "dist/PSDBatchProcessor-Console" "$releaseDir/Console"
+          Copy-Item -Recurse "dist/PSDBatchProcessor-Console" "$releaseDir/Console"
         }
         
         # Copy One-file mode
         if (Test-Path "dist/PSDBatchProcessor-OneFile-Portable") {
-            Copy-Item -Recurse "dist/PSDBatchProcessor-OneFile-Portable" "$releaseDir/OneFile"
+          Copy-Item -Recurse "dist/PSDBatchProcessor-OneFile-Portable" "$releaseDir/OneFile"
         }
         
         # Copy README
         if (Test-Path "README.md") {
-            Copy-Item "README.md" "$releaseDir"
+          Copy-Item "README.md" "$releaseDir"
         }
         
         Write-Host "Created release package: $releaseDir"
@@ -225,8 +118,8 @@ jobs:
         $releaseDir = "dist/PSDBatchProcessor-$version"
         
         if (Test-Path $releaseDir) {
-            Compress-Archive -Path "$releaseDir/*" -DestinationPath "$releaseDir.zip"
-            Write-Host "Created zip: $releaseDir.zip"
+          Compress-Archive -Path "$releaseDir/*" -DestinationPath "$releaseDir.zip"
+          Write-Host "Created zip: $releaseDir.zip"
         }
         
     - name: Upload artifacts
