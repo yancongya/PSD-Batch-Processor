@@ -17,28 +17,36 @@
 - 打包体积较大
 - 需要配置 spec 文件
 
-### 方案 2：Nuitka (性能优化)
-**优点**：
-- 编译为 C++，性能更好
-- 启动速度更快
-- 反编译困难
-
-**缺点**：
-- 打包时间长
-- 配置相对复杂
-
-### 方案 3：cx_Freeze (替代方案)
-**优点**：
-- 跨平台支持好
-- 配置简单
-
-**缺点**：
-- 社区相对较小
-- 文档不够完善
-
 **推荐**：使用 PyInstaller，最成熟且适合本项目。
 
-## 🔧 PyInstaller 打包配置
+## 🚀 快速开始（推荐）
+
+### 方法 1：使用一键构建脚本（最简单）
+
+**Windows 用户**：
+```batch
+# 双击运行
+tools\build.bat
+```
+
+**跨平台**：
+```bash
+# 运行 Python 脚本
+python tools/build_all.py
+```
+
+**说明**：
+- 自动构建所有三个版本（窗口模式、控制台模式、单文件模式）
+- 自动清理旧的构建文件
+- 自动复制必要的文档和脚本文件
+- 显示详细的构建结果和文件大小
+
+**构建输出**：
+- `dist/PSDBatchProcessor-Windowed/` - 窗口模式（推荐生产使用）
+- `dist/PSDBatchProcessor-Console/` - 控制台模式（调试使用）
+- `dist/PSDBatchProcessor-OneFile-Portable/` - 单文件模式（便携分发）
+
+## 🔧 手动打包
 
 ### 1. 安装 PyInstaller
 ```bash
@@ -727,54 +735,40 @@ pyinstaller --name="PSDBatchProcessor" --noconsole src/main.py
 
 ### 快速打包（推荐）
 
-1. **创建打包脚本**
-   ```bash
-   # 复制上面的 Python 打包脚本
-   # 保存为 tools/build.py
-   ```
+**一键构建所有版本**：
+```batch
+# Windows：双击运行
+tools\build.bat
 
-2. **运行打包**
-   ```bash
-   cd "F:\插件脚本开发\PSD Batch Processor"
-   python tools/build.py
-   ```
+# 或使用 Python
+python tools/build_all.py
+```
 
-3. **选择模式**
-   - 选择 **1** (窗口模式) - 推荐
-   - 等待打包完成
+**构建结果**：
+- ✅ 窗口模式：`dist/PSDBatchProcessor-Windowed/PSDBatchProcessor-Windowed.exe`
+- ✅ 控制台模式：`dist/PSDBatchProcessor-Console/PSDBatchProcessor-Console.exe`
+- ✅ 单文件模式：`dist/PSDBatchProcessor-OneFile-Portable/PSDBatchProcessor-OneFile.exe`
 
-4. **获取结果**
-   ```
-   dist/PSDBatchProcessor/PSDBatchProcessor.exe
-   ```
+### 手动打包单个版本
 
-### 手动打包
+**窗口模式**：
+```bash
+cd "F:\插件脚本开发\PSD Batch Processor"
 
-1. **安装 PyInstaller**
-   ```bash
-   pip install pyinstaller
-   ```
+pyinstaller --name="PSDBatchProcessor-Windowed" --noconsole --add-data="docs/guides/START_HERE.txt;docs/guides" --add-data="docs/guides/QUICK_REFERENCE.txt;docs/guides" --add-data="scripts/production/*.jsx;scripts/production" --add-data="scripts/templates/*.jsx;scripts/templates" --add-data="scripts/examples/*.jsx;scripts/examples" --hidden-import=win32com --hidden-import=pythoncom --hidden-import=PIL --hidden-import=customtkinter --exclude-module=torch --exclude-module=torchvision --exclude-module=torchaudio --exclude-module=tensorflow --exclude-module=keras --exclude-module=scipy --exclude-module=numpy --exclude-module=sympy --exclude-module=onnxruntime --exclude-module=selenium --exclude-module=playwright --exclude-module=requests --exclude-module=beautifulsoup4 --exclude-module=lxml --exclude-module=bs4 --exclude-module=pandas --exclude-module=matplotlib --exclude-module=cv2 --exclude-module=opencv-python --exclude-module=pytest --exclude-module=black --exclude-module=flake8 --exclude-module=langchain --exclude-module=openai --exclude-module=anthropic --exclude-module=transformers --exclude-module=tokenizers --exclude-module=huggingface_hub --exclude-module=tkinter --exclude-module=turtle --clean --noconfirm src/main.py
+```
 
-2. **执行打包命令**
-   ```bash
-   cd "F:\插件脚本开发\PSD Batch Processor"
+**控制台模式**：
+```bash
+# 将上面的 --noconsole 改为 --console
+# 将 --name 改为 "PSDBatchProcessor-Console"
+```
 
-   pyinstaller ^
-       --name="PSDBatchProcessor" ^
-       --noconsole ^
-       --icon=assets/icon.ico ^
-       --add-data="src/app/config/config.json;app/config" ^
-       --add-data="docs/guides/START_HERE.txt;docs/guides" ^
-       --add-data="scripts/production/*.jsx;scripts/production" ^
-       --hidden-import=win32com ^
-       --hidden-import=pythoncom ^
-       src/main.py
-   ```
-
-3. **获取结果**
-   ```
-   dist/PSDBatchProcessor/PSDBatchProcessor.exe
-   ```
+**单文件模式**：
+```bash
+# 在窗口模式基础上添加 --onefile
+# 将 --name 改为 "PSDBatchProcessor-OneFile"
+```
 
 ## ⚠️ 常见问题
 
@@ -819,34 +813,41 @@ def get_base_path():
 
 ## 📊 打包体积估算
 
-### 基础打包（窗口模式）
-- **文件大小**: 60-80 MB
-- **包含**: Python 运行时 + 所有依赖 + 项目文件
+### 窗口模式（推荐生产使用）
+- **文件大小**: 约 7-8 MB (主程序) + 依赖文件
+- **包含**: Python 运行时 + PyQt5 + 所有依赖 + 项目文件
 - **优点**: 用户双击运行，无需安装 Python
+- **适合**: 正式发布和分发
 
-### 单文件模式
-- **文件大小**: 60-80 MB
-- **包含**: 所有文件打包到一个 EXE
-- **优点**: 便携，单个文件
-- **缺点**: 启动稍慢，解压到临时目录运行
-
-### 调试模式（控制台）
-- **文件大小**: 60-80 MB
-- **包含**: 控制台窗口
-- **优点**: 可以看到错误信息
+### 控制台模式（调试用）
+- **文件大小**: 约 7-8 MB (主程序) + 依赖文件
+- **包含**: 同窗口模式，但有控制台窗口
+- **优点**: 可以看到错误信息和调试输出
 - **适合**: 开发和调试
+
+### 单文件模式（便携版）
+- **文件大小**: 约 50-60 MB (单个 EXE)
+- **包含**: 所有文件打包到一个 EXE
+- **优点**: 便携，单个文件，易于分发
+- **缺点**: 启动稍慢，解压到临时目录运行
+- **适合**: 便携式分发和临时使用
 
 ## 🚀 部署分发
 
 ### 1. 创建发布包
 ```bash
-dist/PSDBatchProcessor/
-├── PSDBatchProcessor.exe      # 主程序
-├── README.md                  # 说明文档
+dist/PSDBatchProcessor-Windowed/
+├── PSDBatchProcessor-Windowed.exe  # 主程序
+├── README.md                        # 说明文档
 ├── docs/
 │   └── guides/
-│       └── START_HERE.txt     # 快速开始
-└── backups/                   # 运行时自动创建
+│       ├── START_HERE.txt           # 快速开始
+│       └── QUICK_REFERENCE.txt      # 快速参考
+├── scripts/                         # JSX 脚本
+│   ├── production/                   # 生产脚本
+│   ├── templates/                   # 模板脚本
+│   └── examples/                    # 示例脚本
+└── backups/                         # 备份目录（运行时创建）
 ```
 
 ### 2. 压缩分发
@@ -872,7 +873,7 @@ PSD Batch Processor v1.0
 - Photoshop (已安装)
 
 使用方法：
-1. 双击运行 PSDBatchProcessor.exe
+1. 双击运行 PSDBatchProcessor-Windowed.exe
 2. 按照向导配置路径
 3. 添加 PSD 文件并开始处理
 
@@ -902,24 +903,32 @@ PSD Batch Processor v1.0
 ## 🎯 推荐方案总结
 
 ### 对于个人使用
-```bash
+```batch
 # 窗口模式打包
-python tools/build.py
+tools\build.bat
 # 选择 1 (窗口模式)
 ```
 
 ### 对于分发
-```bash
-# 单文件模式 + 图标
-python tools/build.py
+```batch
+# 单文件模式打包
+tools\build.bat
 # 选择 3 (单文件模式)
 ```
 
 ### 对于调试
-```bash
-# 控制台模式
-python tools/build.py
+```batch
+# 控制台模式打包
+tools\build.bat
 # 选择 2 (控制台模式)
+```
+
+### 构建所有版本（推荐）
+```batch
+# 一次性构建所有三个版本
+tools\build.bat
+# 或直接运行
+python tools/build_all.py
 ```
 
 ## 📚 相关资源
@@ -928,6 +937,19 @@ python tools/build.py
 - **PyInstaller 问题排查**: https://pyinstaller.org/en/stable/usage.html
 - **Windows 图标生成器**: https://www.favicon.cc/
 - **Inno Setup**: https://jrsoftware.org/isinfo.php (创建安装程序)
+
+## 🔧 构建脚本说明
+
+### tools/build.bat
+- Windows 批处理脚本
+- 双击运行即可构建所有版本
+- 实际调用 Python 脚本
+
+### tools/build_all.py
+- Python 构建脚本
+- 支持跨平台
+- 自动构建所有三个版本
+- 自动处理工作目录和文件复制
 
 ---
 
