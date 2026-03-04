@@ -30,20 +30,51 @@ jobs:
       with:
         python-version: '3.13'
         
+    - name: Install dependencies
+      run: python -m pip install --upgrade pip && pip install pyinstaller PyQt5 PyQt-Fluent-Widgets pywin32 pillow
+        
     - name: Build all versions
-      shell: cmd
-      id: build
-      run: |
-        cd tools
-        call build_ci.bat
+      run: python tools/build_all.py
         
     - name: Get version
-      shell: cmd
+      shell: pwsh
       id: version
       run: |
-        set VERSION=%GITHUB_REF_NAME%
-        if "%VERSION%"=="" set VERSION=dev-%GITHUB_RUN_NUMBER%
-        echo version=%VERSION% >> %GITHUB_OUTPUT%
+        $version = "${{ github.ref_name }}"
+        if ([string]::IsNullOrEmpty($version)) {
+          $version = "dev-${{ github.run_number }}"
+        }
+        Write-Host "::set-output name=version::$version"
+        echo "version=$version" >> $env:GITHUB_OUTPUT
+        
+    - name: Create Release Package
+      shell: pwsh
+      run: |
+        $version = "${{ steps.version.outputs.version }}"
+        $releaseDir = "dist\PSDBatchProcessor-$version"
+        
+        if (Test-Path $releaseDir) {
+          Remove-Item -Path $releaseDir -Recurse -Force
+        }
+        New-Item -ItemType Directory -Path $releaseDir | Out-Null
+        
+        if (Test-Path "dist\PSDBatchProcessor-Windowed") {
+          Copy-Item -Path "dist\PSDBatchProcessor-Windowed" -Destination "$releaseDir\Windowed" -Recurse
+        }
+        
+        if (Test-Path "dist\PSDBatchProcessor-Console") {
+          Copy-Item -Path "dist\PSDBatchProcessor-Console" -Destination "$releaseDir\Console" -Recurse
+        }
+        
+        if (Test-Path "dist\PSDBatchProcessor-OneFile-Portable") {
+          Copy-Item -Path "dist\PSDBatchProcessor-OneFile-Portable" -Destination "$releaseDir\OneFile" -Recurse
+        }
+        
+        if (Test-Path "README.md") {
+          Copy-Item -Path "README.md" -Destination $releaseDir
+        }
+        
+        Write-Host "Created release package: $releaseDir"
         
     - name: Zip Release
       shell: pwsh
