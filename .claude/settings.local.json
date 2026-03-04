@@ -5,7 +5,20 @@
       "Bash(pip install:*)",
       "Bash(move:*)",
       "WebSearch",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(npm init:*)",
+      "Bash(taskkill:*)",
+      "Bash(scriptssetup.bat:*)",
+      "Bash(cmd /c:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run dev:*)",
+      "Bash(netstat:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(tasklist:*)",
+      "Bash(curl:*)",
+      "Bash(set NODE_ENV=development:*)",
+      "Bash(npx electron:*)",
+      "Bash(nul:*)"
     ],
     "deny": [],
     "ask": []
