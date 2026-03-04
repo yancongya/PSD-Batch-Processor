@@ -51,12 +51,16 @@ def build():
         print(f"Built {name}")
 
 def main():
-    # Get the project root directory (parent of .github directory)
+    # Get the project root directory
+    # Script is at: .github/scripts/build.py
+    # Project root should be: parent.parent.parent of the script
     script_file = Path(__file__).resolve()
-    project_root = script_file.parent.parent
+    project_root = script_file.parent.parent.parent
     
     sys.stderr.write(f"Script file: {script_file}\n")
-    sys.stderr.write(f"Project root: {project_root}\n")
+    sys.stderr.write(f"Script parent: {script_file.parent}\n")
+    sys.stderr.write(f"Script parent.parent: {script_file.parent.parent}\n")
+    sys.stderr.write(f"Project root (parent.parent.parent): {project_root}\n")
     sys.stderr.write(f"Current directory: {os.getcwd()}\n")
     sys.stderr.flush()
     
