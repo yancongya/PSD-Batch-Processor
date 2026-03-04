@@ -178,8 +178,8 @@ if "%BUILD_WINDOWED%"=="1" (
     if errorlevel 1 (
         echo.
         echo [ERROR] Windowed mode build failed!
-        pause
-        exit /b 1
+        echo Continuing with next build mode...
+        goto :skip_windowed
     )
 
     echo.
@@ -188,6 +188,42 @@ if "%BUILD_WINDOWED%"=="1" (
 
     call :copy_files "%DIST_DIR%\PSDBatchProcessor-Windowed"
 )
+
+:skip_windowed
+
+REM Build Console mode
+if "%BUILD_CONSOLE%"=="1" (
+    echo.
+    echo ========================================
+    echo Building Console Mode
+    echo ========================================
+    echo.
+
+    pyinstaller ^
+        --name="PSDBatchProcessor-Console" ^
+        --console ^
+        %ADD_DATA% ^
+        %HIDDEN_IMPORTS% ^
+        %EXCLUDE_MODULES% ^
+        --clean ^
+        --noconfirm ^
+        src/main.py
+
+    if errorlevel 1 (
+        echo.
+        echo [ERROR] Console mode build failed!
+        echo Continuing with next build mode...
+        goto :skip_console
+    )
+
+    echo.
+    echo [SUCCESS] Console mode build completed!
+    echo.
+
+    call :copy_files "%DIST_DIR%\PSDBatchProcessor-Console"
+)
+
+:skip_console
 
 REM Build Console mode
 if "%BUILD_CONSOLE%"=="1" (
@@ -243,8 +279,8 @@ if "%BUILD_ONEFILE%"=="1" (
     if errorlevel 1 (
         echo.
         echo [ERROR] One-file mode build failed!
-        pause
-        exit /b 1
+        echo Continuing with result display...
+        goto :skip_onefile
     )
 
     echo.
@@ -258,6 +294,8 @@ if "%BUILD_ONEFILE%"=="1" (
     move /y "%DIST_DIR%\PSDBatchProcessor-OneFile.exe" "%ONEFILE_DIR%\" >nul 2>&1
     call :copy_files "%ONEFILE_DIR%"
 )
+
+:skip_onefile
 
 echo.
 echo ========================================
@@ -313,5 +351,9 @@ echo.
 echo Quick start guide:
 echo   Each version includes docs\guides\START_HERE.txt
 echo.
+echo ========================================
+echo Build process completed!
+echo Press any key to close this window...
+echo ========================================
 
 pause
