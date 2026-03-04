@@ -51,15 +51,17 @@ def build():
         print(f"Built {name}")
 
 def main():
-    # Get the project root directory using relative paths
+    # Get the project root directory
     # Script is at: .github/scripts/build.py
-    # Project root should be: ../../ relative to the script
-    script_file = Path(__file__)
-    project_root = script_file.parent.parent.parent.resolve()
+    # To get to project root, we need to go up 3 levels: scripts -> .github -> project_root
+    script_file = Path(__file__).resolve()
+    project_root = script_file.parent.parent.parent
     
     sys.stderr.write(f"Script file: {script_file}\n")
-    sys.stderr.write(f"Script location: {script_file.absolute()}\n")
-    sys.stderr.write(f"Project root: {project_root}\n")
+    sys.stderr.write(f"Script parent: {script_file.parent}\n")
+    sys.stderr.write(f"Script parent.parent: {script_file.parent.parent}\n")
+    sys.stderr.write(f"Script parent.parent.parent: {script_file.parent.parent.parent}\n")
+    sys.stderr.write(f"Calculated project root: {project_root}\n")
     sys.stderr.write(f"Current directory: {os.getcwd()}\n")
     sys.stderr.flush()
     
@@ -68,23 +70,15 @@ def main():
     sys.stderr.write(f"After chdir - Current directory: {os.getcwd()}\n")
     sys.stderr.flush()
     
-    # Check if src directory exists
-    src_dir = Path('src')
-    sys.stderr.write(f"src directory exists: {src_dir.exists()}\n")
-    sys.stderr.write(f"src directory absolute: {src_dir.absolute()}\n")
-    sys.stderr.flush()
-    
-    if src_dir.exists():
-        sys.stderr.write("Files in src directory:\n")
-        for item in src_dir.iterdir():
+    # Verify we're in the right place
+    if not Path('src/main.py').exists():
+        sys.stderr.write("ERROR: src/main.py not found in current directory!\n")
+        sys.stderr.write(f"Looking for: {Path('src/main.py').absolute()}\n")
+        sys.stderr.write("Files in current directory:\n")
+        for item in Path('.').iterdir():
             sys.stderr.write(f"  {item.name}\n")
         sys.stderr.flush()
-    
-    # Check if main.py exists
-    main_py = Path('src/main.py')
-    sys.stderr.write(f"src/main.py exists: {main_py.exists()}\n")
-    sys.stderr.write(f"src/main.py absolute path: {main_py.absolute()}\n")
-    sys.stderr.flush()
+        sys.exit(1)
     
     clean()
     install()
