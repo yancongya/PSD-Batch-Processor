@@ -1,21 +1,10 @@
-name: Build PSD Batch Processor
+name: Build
 
 on:
   push:
     tags:
       - 'v*'
   workflow_dispatch:
-    inputs:
-      build_mode:
-        description: 'Build mode'
-        required: true
-        default: 'all'
-        type: choice
-        options:
-          - windowed
-          - console
-          - onefile
-          - all
 
 jobs:
   build:
@@ -28,60 +17,39 @@ jobs:
       with:
         python-version: '3.13'
         
-    - name: Build
+    - name: Install and Build
+      shell: pwsh
       run: |
-        $ErrorActionPreference = "Stop"
+        python -m pip install --upgrade pip
+        pip install pyinstaller PyQt5 PyQt-Fluent-Widgets pywin32 pillow
+        python .github/build.py
         
-        Write-Host "Installing dependencies..."
-        python -m pip install --upgrade pip 2>&1 | Write-Host
-        pip install pyinstaller PyQt5 PyQt-Fluent-Widgets pywin32 pillow 2>&1 | Write-Host
-        
-        Write-Host "Building..."
-        python .github/build.py 2>&1 | Write-Host
-        
-        Write-Host "Build completed"
-        
-    - name: Create Release
-      id: release
+    - name: Package
+      shell: pwsh
       run: |
-        $version = "${{ github.ref_name }}"
-        if ([string]::IsNullOrEmpty($version)) {
-          $version = "dev-${{ github.run_number }}"
-        }
-        Write-Output "version=$version" >> $env:GITHUB_OUTPUT
-        
-        $releaseDir = "dist\PSDBatchProcessor-$version"
-        
-        if (Test-Path $releaseDir) {
-          Remove-Item -Path $releaseDir -Recurse -Force
-        }
-        New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
-        
-        $dirs = @("PSDBatchProcessor-Windowed", "PSDBatchProcessor-Console", "PSDBatchProcessor-OneFile-Portable")
-        foreach ($dir in $dirs) {
-          if (Test-Path "dist\$dir") {
-            $targetName = $dir -replace "PSDBatchProcessor-", ""
-            Copy-Item -Path "dist\$dir" -Destination "$releaseDir\$targetName" -Recurse
+        $v = "${{ github.ref_name }}"
+        if (-not $v) { $v = "dev-${{ github.run_number }}" }
+        $d = "dist\PSDBatchProcessor-$v"
+        if (Test-Path $d) { Remove-Item $d -Recurse }
+        New-Item $d -ItemType Directory | Out-Null
+        @("Windowed","Console","OneFile") | ForEach-Object {
+          if (Test-Path "dist\PSDBatchProcessor-$_") { 
+            Copy-Item "dist\PSDBatchProcessor-$_" "$d\$_" -Recurse 
           }
         }
-        
-        if (Test-Path "README.md") {
-          Copy-Item -Path "README.md" -Destination $releaseDir
-        }
-        
-        Compress-Archive -Path "$releaseDir\*" -DestinationPath "$releaseDir.zip"
+        if (Test-Path README.md) { Copy-Item README.md $d }
+        Compress-Archive "$d\*" "$d.zip"
         
     - name: Upload
       uses: actions/upload-artifact@v4
       with:
-        name: PSD-Batch-Processor-${{ steps.release.outputs.version }}
-        path: dist/PSDBatchProcessor-${{ steps.release.outputs.version }}.zip
-        retention-days: 30
+        name: build
+        path: dist/*.zip
         
-    - name: GitHub Release
+    - name: Release
       if: github.event_name == 'push'
       uses: softprops/action-gh-release@v1
       with:
-        files: dist/PSDBatchProcessor-${{ steps.release.outputs.version }}.zip
+        files: dist/*.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
