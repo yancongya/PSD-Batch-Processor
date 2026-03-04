@@ -45,20 +45,28 @@ echo Select build mode:
 echo 1. Windowed mode (recommended, no console)
 echo 2. Console mode (for debugging)
 echo 3. One-file mode (portable)
-echo 4. Exit
+echo 4. Build all versions (windowed, console, onefile)
+echo 5. Exit
 echo.
-set /p choice="Enter choice (1-4): "
+set /p choice="Enter choice (1-5): "
 
 if "%choice%"=="1" (
-    set MODE=Windowed
-    set ARGS=--noconsole
+    set BUILD_WINDOWED=1
+    set BUILD_CONSOLE=0
+    set BUILD_ONEFILE=0
 ) else if "%choice%"=="2" (
-    set MODE=Console
-    set ARGS=--console
+    set BUILD_WINDOWED=0
+    set BUILD_CONSOLE=1
+    set BUILD_ONEFILE=0
 ) else if "%choice%"=="3" (
-    set MODE=One-file
-    set ARGS=--noconsole --onefile
+    set BUILD_WINDOWED=0
+    set BUILD_CONSOLE=0
+    set BUILD_ONEFILE=1
 ) else if "%choice%"=="4" (
+    set BUILD_WINDOWED=1
+    set BUILD_CONSOLE=1
+    set BUILD_ONEFILE=1
+) else if "%choice%"=="5" (
     echo Exiting...
     pause
     exit /b 0
@@ -69,7 +77,9 @@ if "%choice%"=="1" (
 )
 
 echo.
-echo Selected mode: %MODE%
+echo ========================================
+echo Starting Build Process
+echo ========================================
 echo.
 
 REM Clean old build files
@@ -80,24 +90,10 @@ if exist "%PROJECT_DIR%\__pycache__" rmdir /s /q "%PROJECT_DIR%\__pycache__"
 echo [OK] Old files cleaned
 echo.
 
-REM Start building
-echo Starting build...
-echo.
-
 cd /d "%PROJECT_DIR%"
 
-pyinstaller ^
-    --name="PSDBatchProcessor" ^
-    %ARGS% ^
-    --add-data="docs/guides/START_HERE.txt;docs/guides" ^
-    --add-data="docs/guides/QUICK_REFERENCE.txt;docs/guides" ^
-    --add-data="scripts/production/*.jsx;scripts/production" ^
-    --add-data="scripts/templates/*.jsx;scripts/templates" ^
-    --add-data="scripts/examples/*.jsx;scripts/examples" ^
-    --hidden-import=win32com ^
-    --hidden-import=pythoncom ^
-    --hidden-import=PIL ^
-    --hidden-import=customtkinter ^
+REM Define exclude modules
+set EXCLUDE_MODULES=^
     --exclude-module=torch ^
     --exclude-module=torchvision ^
     --exclude-module=torchaudio ^
@@ -127,65 +123,195 @@ pyinstaller ^
     --exclude-module=tokenizers ^
     --exclude-module=huggingface_hub ^
     --exclude-module=tkinter ^
-    --exclude-module=turtle ^
-    --clean ^
-    --noconfirm ^
-    src/main.py
+    --exclude-module=turtle
 
-if errorlevel 1 (
+REM Define hidden imports
+set HIDDEN_IMPORTS=^
+    --hidden-import=win32com ^
+    --hidden-import=pythoncom ^
+    --hidden-import=PIL ^
+    --hidden-import=customtkinter
+
+REM Define add data
+set ADD_DATA=^
+    --add-data="docs/guides/START_HERE.txt;docs/guides" ^
+    --add-data="docs/guides/QUICK_REFERENCE.txt;docs/guides" ^
+    --add-data="scripts/production/*.jsx;scripts/production" ^
+    --add-data="scripts/templates/*.jsx;scripts/templates" ^
+    --add-data="scripts/examples/*.jsx;scripts/examples"
+
+REM Function to copy additional files
+:copy_files
+set OUTPUT_DIR=%~1
+xcopy /y "%PROJECT_DIR%\README.md" "%OUTPUT_DIR%\" >nul 2>&1
+if not exist "%OUTPUT_DIR%\docs\guides" mkdir "%OUTPUT_DIR%\docs\guides"
+xcopy /y "%PROJECT_DIR%\docs\guides\START_HERE.txt" "%OUTPUT_DIR%\docs\guides\" >nul 2>&1
+xcopy /y "%PROJECT_DIR%\docs\guides\QUICK_REFERENCE.txt" "%OUTPUT_DIR%\docs\guides\" >nul 2>&1
+
+if not exist "%OUTPUT_DIR%\scripts" (
+    xcopy /e /i /y "%PROJECT_DIR%\scripts" "%OUTPUT_DIR%\scripts" >nul 2>&1
+)
+
+if not exist "%OUTPUT_DIR%\backups" (
+    mkdir "%OUTPUT_DIR%\backups"
+)
+goto :eof
+
+REM Build Windowed mode
+if "%BUILD_WINDOWED%"=="1" (
     echo.
-    echo [ERROR] Build failed!
-    echo Please check the error messages
-    pause
-    exit /b 1
+    echo ========================================
+    echo Building Windowed Mode
+    echo ========================================
+    echo.
+
+    pyinstaller ^
+        --name="PSDBatchProcessor-Windowed" ^
+        --noconsole ^
+        %ADD_DATA% ^
+        %HIDDEN_IMPORTS% ^
+        %EXCLUDE_MODULES% ^
+        --clean ^
+        --noconfirm ^
+        src/main.py
+
+    if errorlevel 1 (
+        echo.
+        echo [ERROR] Windowed mode build failed!
+        pause
+        exit /b 1
+    )
+
+    echo.
+    echo [SUCCESS] Windowed mode build completed!
+    echo.
+
+    call :copy_files "%DIST_DIR%\PSDBatchProcessor-Windowed"
+)
+
+REM Build Console mode
+if "%BUILD_CONSOLE%"=="1" (
+    echo.
+    echo ========================================
+    echo Building Console Mode
+    echo ========================================
+    echo.
+
+    pyinstaller ^
+        --name="PSDBatchProcessor-Console" ^
+        --console ^
+        %ADD_DATA% ^
+        %HIDDEN_IMPORTS% ^
+        %EXCLUDE_MODULES% ^
+        --clean ^
+        --noconfirm ^
+        src/main.py
+
+    if errorlevel 1 (
+        echo.
+        echo [ERROR] Console mode build failed!
+        pause
+        exit /b 1
+    )
+
+    echo.
+    echo [SUCCESS] Console mode build completed!
+    echo.
+
+    call :copy_files "%DIST_DIR%\PSDBatchProcessor-Console"
+)
+
+REM Build One-file mode
+if "%BUILD_ONEFILE%"=="1" (
+    echo.
+    echo ========================================
+    echo Building One-file Mode
+    echo ========================================
+    echo.
+
+    pyinstaller ^
+        --name="PSDBatchProcessor-OneFile" ^
+        --noconsole ^
+        --onefile ^
+        %ADD_DATA% ^
+        %HIDDEN_IMPORTS% ^
+        %EXCLUDE_MODULES% ^
+        --clean ^
+        --noconfirm ^
+        src/main.py
+
+    if errorlevel 1 (
+        echo.
+        echo [ERROR] One-file mode build failed!
+        pause
+        exit /b 1
+    )
+
+    echo.
+    echo [SUCCESS] One-file mode build completed!
+    echo.
+
+    REM For one-file mode, create output directory structure
+    set ONEFILE_DIR=%DIST_DIR%\PSDBatchProcessor-OneFile-Portable
+    if not exist "%ONEFILE_DIR%" mkdir "%ONEFILE_DIR%"
+
+    move /y "%DIST_DIR%\PSDBatchProcessor-OneFile.exe" "%ONEFILE_DIR%\" >nul 2>&1
+    call :copy_files "%ONEFILE_DIR%"
 )
 
 echo.
-echo [SUCCESS] Build completed!
-echo.
-
-REM Copy additional files
-echo Copying additional files...
-xcopy /y "%PROJECT_DIR%\README.md" "%DIST_DIR%\PSDBatchProcessor\" >nul 2>&1
-if not exist "%DIST_DIR%\PSDBatchProcessor\docs\guides" mkdir "%DIST_DIR%\PSDBatchProcessor\docs\guides"
-xcopy /y "%PROJECT_DIR%\docs\guides\START_HERE.txt" "%DIST_DIR%\PSDBatchProcessor\docs\guides\" >nul 2>&1
-xcopy /y "%PROJECT_DIR%\docs\guides\QUICK_REFERENCE.txt" "%DIST_DIR%\PSDBatchProcessor\docs\guides\" >nul 2>&1
-
-REM Copy scripts directory
-if not exist "%DIST_DIR%\PSDBatchProcessor\scripts" (
-    xcopy /e /i /y "%PROJECT_DIR%\scripts" "%DIST_DIR%\PSDBatchProcessor\scripts" >nul 2>&1
-    echo [OK] Scripts directory copied
-) else (
-    echo [INFO] Scripts directory already exists
-)
-
-REM Create backups directory
-if not exist "%DIST_DIR%\PSDBatchProcessor\backups" (
-    mkdir "%DIST_DIR%\PSDBatchProcessor\backups"
-    echo [OK] Backups directory created
-)
-
-echo [OK] Files copied
+echo ========================================
+echo All Builds Complete!
+echo ========================================
 echo.
 
 REM Show build results
 echo Build results:
-echo - Executable: dist\PSDBatchProcessor\PSDBatchProcessor.exe
-echo - Size:
-dir /s /-c "%DIST_DIR%\PSDBatchProcessor\PSDBatchProcessor.exe" | findstr "bytes"
+echo.
+
+if "%BUILD_WINDOWED%"=="1" (
+    echo [Windowed Mode]
+    echo - Directory: dist\PSDBatchProcessor-Windowed\
+    echo - Executable: PSDBatchProcessor-Windowed.exe
+    for %%A in ("%DIST_DIR%\PSDBatchProcessor-Windowed\PSDBatchProcessor-Windowed.exe") do echo - Size: %%~zA bytes
+    echo.
+)
+
+if "%BUILD_CONSOLE%"=="1" (
+    echo [Console Mode]
+    echo - Directory: dist\PSDBatchProcessor-Console\
+    echo - Executable: PSDBatchProcessor-Console.exe
+    for %%A in ("%DIST_DIR%\PSDBatchProcessor-Console\PSDBatchProcessor-Console.exe") do echo - Size: %%~zA bytes
+    echo.
+)
+
+if "%BUILD_ONEFILE%"=="1" (
+    echo [One-file Mode]
+    echo - Directory: dist\PSDBatchProcessor-OneFile-Portable\
+    echo - Executable: PSDBatchProcessor-OneFile.exe
+    for %%A in ("%DIST_DIR%\PSDBatchProcessor-OneFile-Portable\PSDBatchProcessor-OneFile.exe") do echo - Size: %%~zA bytes
+    echo.
+)
 
 echo.
 echo ========================================
-echo Build Complete!
+echo Usage Instructions
 echo ========================================
 echo.
-echo Usage:
-echo 1. Run: dist\PSDBatchProcessor\PSDBatchProcessor.exe
-echo 2. First run will automatically create backups/ and config.json
-echo 3. Follow documentation to configure Photoshop path and scripts directory
+echo 1. Windowed Mode (推荐):
+echo    - Run: dist\PSDBatchProcessor-Windowed\PSDBatchProcessor-Windowed.exe
+echo    - No console window, suitable for production
+echo.
+echo 2. Console Mode (调试用):
+echo    - Run: dist\PSDBatchProcessor-Console\PSDBatchProcessor-Console.exe
+echo    - Shows console output, suitable for debugging
+echo.
+echo 3. One-file Mode (便携版):
+echo    - Run: dist\PSDBatchProcessor-OneFile-Portable\PSDBatchProcessor-OneFile.exe
+echo    - Single executable, portable distribution
 echo.
 echo Quick start guide:
-echo   dist\PSDBatchProcessor\docs\guides\START_HERE.txt
+echo   Each version includes docs\guides\START_HERE.txt
 echo.
 
 pause

@@ -55,7 +55,7 @@ def clean_build():
         spec_file.unlink()
         print("[OK] 删除 spec 文件")
 
-def build_exe(mode="windowed"):
+def build_exe(mode="windowed", name="PSDBatchProcessor"):
     """打包 EXE"""
     print(f"\n开始打包 ({mode} 模式)...")
     project_dir = get_project_dir()
@@ -63,7 +63,7 @@ def build_exe(mode="windowed"):
     # 基础命令
     cmd = [
         "pyinstaller",
-        "--name=PSDBatchProcessor",
+        f"--name={name}",
         "--clean",
         "--noconfirm",
     ]
@@ -150,32 +150,7 @@ def build_exe(mode="windowed"):
         print("\n[ERROR] 打包失败！")
         return False
 
-def show_result():
-    """显示打包结果"""
-    project_dir = get_project_dir()
-    exe_path = project_dir / "dist" / "PSDBatchProcessor" / "PSDBatchProcessor.exe"
 
-    if exe_path.exists():
-        size = exe_path.stat().st_size
-        size_mb = size / (1024 * 1024)
-
-        print("\n" + "=" * 60)
-        print("打包结果")
-        print("=" * 60)
-        print(f"可执行文件: {exe_path}")
-        print(f"文件大小: {size_mb:.2f} MB")
-        print(f"文件大小: {size:,} bytes")
-        print("\n使用方法:")
-        print(f"  {exe_path}")
-        print("\n首次运行会自动创建:")
-        print("  - backups/ 目录 (在EXE所在目录)")
-        print("  - 配置文件 (在 %APPDATA%/PSDBatchProcessor/config.json)")
-        print("\n脚本文件位置:")
-        print("  - 内置脚本: 打包在EXE内部")
-        print("  - 自定义脚本: 可以放在任意位置，通过界面设置路径")
-        print("\n请按照文档配置:")
-        print("  docs/guides/START_HERE.txt")
-        print("=" * 60)
 
 def copy_files():
     """复制必要文件到打包目录"""
@@ -224,6 +199,101 @@ def copy_files():
     except Exception as e:
         print(f"[WARNING] 文件复制失败: {e}")
 
+def copy_files(output_dir):
+    """复制必要文件到输出目录"""
+    project_dir = get_project_dir()
+    
+    # 复制 README
+    if (project_dir / "README.md").exists():
+        shutil.copy2(project_dir / "README.md", output_dir)
+    
+    # 复制文档
+    guides_dir = output_dir / "docs" / "guides"
+    guides_dir.mkdir(parents=True, exist_ok=True)
+    
+    start_here = project_dir / "docs/guides/START_HERE.txt"
+    if start_here.exists():
+        shutil.copy2(start_here, guides_dir)
+    
+    quick_ref = project_dir / "docs/guides/QUICK_REFERENCE.txt"
+    if quick_ref.exists():
+        shutil.copy2(quick_ref, guides_dir)
+    
+    # 复制脚本文件
+    scripts_dir = output_dir / "scripts"
+    if not scripts_dir.exists():
+        source_scripts = project_dir / "scripts"
+        if source_scripts.exists():
+            shutil.copytree(source_scripts, scripts_dir)
+    
+    # 创建备份目录
+    backups_dir = output_dir / "backups"
+    backups_dir.mkdir(parents=True, exist_ok=True)
+
+
+def show_build_results(build_modes):
+    """显示构建结果"""
+    project_dir = get_project_dir()
+    dist_dir = project_dir / "dist"
+    
+    print("\n" + "=" * 60)
+    print("构建结果")
+    print("=" * 60)
+    
+    if build_modes.get("windowed"):
+        exe_path = dist_dir / "PSDBatchProcessor-Windowed" / "PSDBatchProcessor-Windowed.exe"
+        if exe_path.exists():
+            size = exe_path.stat().st_size
+            size_mb = size / (1024 * 1024)
+            print(f"\n[窗口模式]")
+            print(f"  目录: dist\\PSDBatchProcessor-Windowed\\")
+            print(f"  可执行文件: PSDBatchProcessor-Windowed.exe")
+            print(f"  文件大小: {size_mb:.2f} MB ({size:,} bytes)")
+    
+    if build_modes.get("console"):
+        exe_path = dist_dir / "PSDBatchProcessor-Console" / "PSDBatchProcessor-Console.exe"
+        if exe_path.exists():
+            size = exe_path.stat().st_size
+            size_mb = size / (1024 * 1024)
+            print(f"\n[控制台模式]")
+            print(f"  目录: dist\\PSDBatchProcessor-Console\\")
+            print(f"  可执行文件: PSDBatchProcessor-Console.exe")
+            print(f"  文件大小: {size_mb:.2f} MB ({size:,} bytes)")
+    
+    if build_modes.get("onefile"):
+        exe_path = dist_dir / "PSDBatchProcessor-OneFile-Portable" / "PSDBatchProcessor-OneFile.exe"
+        if exe_path.exists():
+            size = exe_path.stat().st_size
+            size_mb = size / (1024 * 1024)
+            print(f"\n[单文件模式]")
+            print(f"  目录: dist\\PSDBatchProcessor-OneFile-Portable\\")
+            print(f"  可执行文件: PSDBatchProcessor-OneFile.exe")
+            print(f"  文件大小: {size_mb:.2f} MB ({size:,} bytes)")
+    
+    print("\n" + "=" * 60)
+    print("使用说明")
+    print("=" * 60)
+    
+    if build_modes.get("windowed"):
+        print("\n1. 窗口模式 (推荐):")
+        print(f"   - 运行: dist\\PSDBatchProcessor-Windowed\\PSDBatchProcessor-Windowed.exe")
+        print("   - 无控制台窗口，适合生产环境")
+    
+    if build_modes.get("console"):
+        print("\n2. 控制台模式 (调试用):")
+        print(f"   - 运行: dist\\PSDBatchProcessor-Console\\PSDBatchProcessor-Console.exe")
+        print("   - 显示控制台输出，适合调试")
+    
+    if build_modes.get("onefile"):
+        print("\n3. 单文件模式 (便携版):")
+        print(f"   - 运行: dist\\PSDBatchProcessor-OneFile-Portable\\PSDBatchProcessor-OneFile.exe")
+        print("   - 单个可执行文件，便于分发")
+    
+    print("\n快速开始指南:")
+    print("   每个版本都包含 docs\\guides\\START_HERE.txt")
+    print("=" * 60)
+
+
 def main():
     """主函数"""
     print("=" * 60)
@@ -239,40 +309,100 @@ def main():
     print("1. 窗口模式 (推荐，无控制台)")
     print("2. 控制台模式 (调试用)")
     print("3. 单文件模式 (便携版)")
-    print("4. 退出")
+    print("4. 构建所有版本 (窗口模式 + 控制台模式 + 单文件模式)")
+    print("5. 退出")
 
-    choice = input("\n请输入选择 (1-4): ").strip()
+    choice = input("\n请输入选择 (1-5): ").strip()
 
-    modes = {
-        "1": "windowed",
-        "2": "console",
-        "3": "onefile",
-        "4": "exit"
+    # 定义构建模式
+    build_modes = {
+        "1": {"windowed": True, "console": False, "onefile": False},
+        "2": {"windowed": False, "console": True, "onefile": False},
+        "3": {"windowed": False, "console": False, "onefile": True},
+        "4": {"windowed": True, "console": True, "onefile": True},
+        "5": {"exit": True}
     }
 
-    if choice not in modes:
+    if choice not in build_modes:
         print("[ERROR] 无效选择！")
         return 1
 
-    if modes[choice] == "exit":
+    if build_modes[choice].get("exit"):
         return 0
 
     # 清理旧文件
     clean_build()
 
-    # 打包
-    if build_exe(modes[choice]):
-        # 显示结果
-        show_result()
+    modes = build_modes[choice]
+    project_dir = get_project_dir()
+    dist_dir = project_dir / "dist"
+    
+    success_count = 0
+    total_count = sum([1 for v in modes.values() if v])
 
-        # 复制必要文件
-        copy_files()
-
+    # 构建窗口模式
+    if modes.get("windowed"):
         print("\n" + "=" * 60)
-        print("🎉 打包完成！")
+        print("构建窗口模式...")
         print("=" * 60)
+        
+        if build_exe("windowed", "PSDBatchProcessor-Windowed"):
+            # 复制必要文件
+            output_dir = dist_dir / "PSDBatchProcessor-Windowed"
+            copy_files(output_dir)
+            success_count += 1
+            print("[SUCCESS] 窗口模式构建完成！")
+        else:
+            print("[ERROR] 窗口模式构建失败！")
+
+    # 构建控制台模式
+    if modes.get("console"):
+        print("\n" + "=" * 60)
+        print("构建控制台模式...")
+        print("=" * 60)
+        
+        if build_exe("console", "PSDBatchProcessor-Console"):
+            # 复制必要文件
+            output_dir = dist_dir / "PSDBatchProcessor-Console"
+            copy_files(output_dir)
+            success_count += 1
+            print("[SUCCESS] 控制台模式构建完成！")
+        else:
+            print("[ERROR] 控制台模式构建失败！")
+
+    # 构建单文件模式
+    if modes.get("onefile"):
+        print("\n" + "=" * 60)
+        print("构建单文件模式...")
+        print("=" * 60)
+        
+        if build_exe("onefile", "PSDBatchProcessor-OneFile"):
+            # 单文件模式需要特殊处理，创建输出目录
+            onefile_dir = dist_dir / "PSDBatchProcessor-OneFile-Portable"
+            onefile_dir.mkdir(parents=True, exist_ok=True)
+            
+            # 移动 EXE 到便携目录
+            source_exe = dist_dir / "PSDBatchProcessor-OneFile.exe"
+            target_exe = onefile_dir / "PSDBatchProcessor-OneFile.exe"
+            
+            if source_exe.exists():
+                shutil.move(str(source_exe), str(target_exe))
+            
+            # 复制必要文件
+            copy_files(onefile_dir)
+            success_count += 1
+            print("[SUCCESS] 单文件模式构建完成！")
+        else:
+            print("[ERROR] 单文件模式构建失败！")
+
+    # 显示结果
+    if success_count == total_count:
+        show_build_results(modes)
+        print(f"\n🎉 所有构建成功完成！ ({success_count}/{total_count})")
         return 0
     else:
+        show_build_results(modes)
+        print(f"\n⚠️  部分构建失败！ ({success_count}/{total_count})")
         return 1
 
 if __name__ == "__main__":
