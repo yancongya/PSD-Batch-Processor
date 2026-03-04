@@ -5,17 +5,25 @@ PSD Batch Processor One-click Build Script
 Automatically builds all three versions
 """
 
+# Set environment variables before any imports
+import os
+import sys
+
+# Set PYTHONIOENCODING to utf-8 to handle unicode output
+os.environ['PYTHONIOENCODING'] = 'utf-8'
+
 import subprocess
 import shutil
 from pathlib import Path
 
 # Set stdout encoding
-import sys
 import io
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+if hasattr(sys.stdout, 'buffer'):
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+if hasattr(sys.stderr, 'buffer'):
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 # Switch to project root directory
-import os
 os.chdir(Path(__file__).parent.parent)
 print(f"Working directory: {os.getcwd()}")
 
