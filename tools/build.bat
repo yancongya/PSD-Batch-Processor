@@ -49,12 +49,6 @@ echo [ERROR] Invalid choice!
 pause
 exit /b 1
 
-:build_all
-set BUILD_WINDOWED=1
-set BUILD_CONSOLE=1
-set BUILD_ONEFILE=1
-goto start_build
-
 :build_windowed
 set BUILD_WINDOWED=1
 set BUILD_CONSOLE=0
@@ -70,6 +64,12 @@ goto start_build
 :build_onefile
 set BUILD_WINDOWED=0
 set BUILD_CONSOLE=0
+set BUILD_ONEFILE=1
+goto start_build
+
+:build_all
+set BUILD_WINDOWED=1
+set BUILD_CONSOLE=1
 set BUILD_ONEFILE=1
 goto start_build
 
@@ -89,13 +89,12 @@ echo.
 
 cd /d "%PROJECT_DIR%"
 
-if "%BUILD_WINDOWED%"=="1" call :build_windowed_mode
-if "%BUILD_CONSOLE%"=="1" call :build_console_mode
-if "%BUILD_ONEFILE%"=="1" call :build_onefile_mode
-
+if "%BUILD_WINDOWED%"=="1" goto do_build_windowed
+if "%BUILD_CONSOLE%"=="1" goto do_build_console
+if "%BUILD_ONEFILE%"=="1" goto do_build_onefile
 goto show_results
 
-:build_windowed_mode
+:do_build_windowed
 echo.
 echo ========================================
 echo Building Windowed Mode
@@ -110,9 +109,12 @@ if errorlevel 1 (
     echo [SUCCESS] Windowed mode build completed!
     call :copy_files "%DIST_DIR%\PSDBatchProcessor-Windowed"
 )
-goto :eof
 
-:build_console_mode
+if "%BUILD_CONSOLE%"=="1" goto do_build_console
+if "%BUILD_ONEFILE%"=="1" goto do_build_onefile
+goto show_results
+
+:do_build_console
 echo.
 echo ========================================
 echo Building Console Mode
@@ -127,9 +129,11 @@ if errorlevel 1 (
     echo [SUCCESS] Console mode build completed!
     call :copy_files "%DIST_DIR%\PSDBatchProcessor-Console"
 )
-goto :eof
 
-:build_onefile_mode
+if "%BUILD_ONEFILE%"=="1" goto do_build_onefile
+goto show_results
+
+:do_build_onefile
 echo.
 echo ========================================
 echo Building One-file Mode
@@ -147,7 +151,8 @@ if errorlevel 1 (
     move /y "%DIST_DIR%\PSDBatchProcessor-OneFile.exe" "%ONEFILE_DIR%\" >nul 2>&1
     call :copy_files "%ONEFILE_DIR%"
 )
-goto :eof
+
+goto show_results
 
 :copy_files
 set OUTPUT_DIR=%~1
