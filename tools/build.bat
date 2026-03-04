@@ -98,6 +98,36 @@ pyinstaller ^
     --hidden-import=pythoncom ^
     --hidden-import=PIL ^
     --hidden-import=customtkinter ^
+    --exclude-module=torch ^
+    --exclude-module=torchvision ^
+    --exclude-module=torchaudio ^
+    --exclude-module=tensorflow ^
+    --exclude-module=keras ^
+    --exclude-module=scipy ^
+    --exclude-module=numpy ^
+    --exclude-module=sympy ^
+    --exclude-module=onnxruntime ^
+    --exclude-module=selenium ^
+    --exclude-module=playwright ^
+    --exclude-module=requests ^
+    --exclude-module=beautifulsoup4 ^
+    --exclude-module=lxml ^
+    --exclude-module=bs4 ^
+    --exclude-module=pandas ^
+    --exclude-module=matplotlib ^
+    --exclude-module=cv2 ^
+    --exclude-module=opencv-python ^
+    --exclude-module=pytest ^
+    --exclude-module=black ^
+    --exclude-module=flake8 ^
+    --exclude-module=langchain ^
+    --exclude-module=openai ^
+    --exclude-module=anthropic ^
+    --exclude-module=transformers ^
+    --exclude-module=tokenizers ^
+    --exclude-module=huggingface_hub ^
+    --exclude-module=tkinter ^
+    --exclude-module=turtle ^
     --clean ^
     --noconfirm ^
     src/main.py

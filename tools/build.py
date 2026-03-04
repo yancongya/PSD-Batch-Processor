@@ -107,6 +107,35 @@ def build_exe(mode="windowed"):
     for imp in hidden_imports:
         cmd.extend(["--hidden-import", imp])
 
+    # 排除不必要的模块（加速构建，减小文件大小）
+    exclude_modules = [
+        # 深度学习框架
+        "torch", "torchvision", "torchaudio",
+        "tensorflow", "keras",
+        # 科学计算
+        "scipy", "numpy", "sympy",
+        # ONNX
+        "onnxruntime",
+        # 爬虫和网页相关
+        "selenium", "playwright", "requests",
+        "beautifulsoup4", "lxml", "bs4",
+        # 数据处理
+        "pandas", "matplotlib",
+        # 其他大型库
+        "cv2", "opencv-python",
+        # 开发工具
+        "pytest", "black", "flake8",
+        # AI/ML 相关
+        "langchain", "openai", "anthropic",
+        "transformers", "tokenizers",
+        "huggingface_hub",
+        # 其他
+        "tkinter", "turtle",
+    ]
+
+    for mod in exclude_modules:
+        cmd.extend(["--exclude-module", mod])
+
     # 主程序
     cmd.append(str(project_dir / "src/main.py"))
 

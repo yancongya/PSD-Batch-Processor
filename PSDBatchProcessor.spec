@@ -10,7 +10,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=['torch', 'torchvision', 'torchaudio', 'tensorflow', 'keras', 'scipy', 'numpy', 'sympy', 'onnxruntime', 'selenium', 'playwright', 'requests', 'beautifulsoup4', 'lxml', 'bs4', 'pandas', 'matplotlib', 'cv2', 'opencv-python', 'pytest', 'black', 'flake8', 'langchain', 'openai', 'anthropic', 'transformers', 'tokenizers', 'huggingface_hub', 'tkinter', 'turtle'],
     noarchive=False,
     optimize=0,
 )
