@@ -50,9 +50,23 @@ def main():
     script_dir = Path(__file__).parent.parent
     os.chdir(script_dir)
     
-    print(f"Current directory: {os.getcwd()}")
-    print(f"Script directory: {script_dir}")
-    print(f"src/main.py exists: {(Path('src/main.py').exists())}")
+    print(f"Current directory: {os.getcwd()}", flush=True)
+    print(f"Script directory: {script_dir}", flush=True)
+    print(f"src/main.py exists: {(Path('src/main.py').exists())}", flush=True)
+    
+    # List all files in current directory
+    print("Files in current directory:", flush=True)
+    for item in Path('.').iterdir():
+        print(f"  {item.name}", flush=True)
+    
+    # Check src directory
+    src_dir = Path('src')
+    if src_dir.exists():
+        print("Files in src directory:", flush=True)
+        for item in src_dir.iterdir():
+            print(f"  {item.name}", flush=True)
+    else:
+        print("src directory does not exist!", flush=True)
     
     clean()
     install()
