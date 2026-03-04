@@ -1,4 +1,4 @@
-name: Build
+name: build
 
 on:
   push:
@@ -9,47 +9,18 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-    
     steps:
-    - uses: actions/checkout@v4
-      
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.13'
-        
-    - name: Install and Build
-      shell: pwsh
-      run: |
-        python -m pip install --upgrade pip
-        pip install pyinstaller PyQt5 PyQt-Fluent-Widgets pywin32 pillow
-        python .github/build.py
-        
-    - name: Package
-      shell: pwsh
-      run: |
-        $v = "${{ github.ref_name }}"
-        if (-not $v) { $v = "dev-${{ github.run_number }}" }
-        $d = "dist\PSDBatchProcessor-$v"
-        if (Test-Path $d) { Remove-Item $d -Recurse }
-        New-Item $d -ItemType Directory | Out-Null
-        @("Windowed","Console","OneFile") | ForEach-Object {
-          if (Test-Path "dist\PSDBatchProcessor-$_") { 
-            Copy-Item "dist\PSDBatchProcessor-$_" "$d\$_" -Recurse 
-          }
-        }
-        if (Test-Path README.md) { Copy-Item README.md $d }
-        Compress-Archive "$d\*" "$d.zip"
-        
-    - name: Upload
-      uses: actions/upload-artifact@v4
-      with:
-        name: build
-        path: dist/*.zip
-        
-    - name: Release
-      if: github.event_name == 'push'
-      uses: softprops/action-gh-release@v1
-      with:
-        files: dist/*.zip
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python .github/scripts/build.py
+      - uses: softprops/action-gh-release@v1
+        if: github.event_name == 'push'
+        with:
+          files: |
+            dist/PSDBatchProcessor-Windowed/*
+            dist/PSDBatchProcessor-Console/*
+            dist/PSDBatchProcessor-OneFile.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
