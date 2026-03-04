@@ -5,6 +5,10 @@ import subprocess
 import shutil
 from pathlib import Path
 
+# Force immediate output
+sys.stderr.write("=== BUILD SCRIPT STARTED ===\n")
+sys.stderr.flush()
+
 def clean():
     for d in ['build', 'dist', '__pycache__']:
         p = Path(d)
@@ -48,25 +52,31 @@ def build():
 
 def main():
     script_dir = Path(__file__).parent.parent
+    sys.stderr.write(f"Script file: {__file__}\n")
+    sys.stderr.write(f"Script directory: {script_dir}\n")
+    sys.stderr.write(f"Current directory: {os.getcwd()}\n")
+    sys.stderr.flush()
+    
     os.chdir(script_dir)
+    sys.stderr.write(f"After chdir - Current directory: {os.getcwd()}\n")
+    sys.stderr.flush()
     
-    print(f"Current directory: {os.getcwd()}", flush=True)
-    print(f"Script directory: {script_dir}", flush=True)
-    print(f"src/main.py exists: {(Path('src/main.py').exists())}", flush=True)
-    
-    # List all files in current directory
-    print("Files in current directory:", flush=True)
-    for item in Path('.').iterdir():
-        print(f"  {item.name}", flush=True)
-    
-    # Check src directory
+    # Check if src directory exists
     src_dir = Path('src')
+    sys.stderr.write(f"src directory exists: {src_dir.exists()}\n")
+    sys.stderr.flush()
+    
     if src_dir.exists():
-        print("Files in src directory:", flush=True)
+        sys.stderr.write("Files in src directory:\n")
         for item in src_dir.iterdir():
-            print(f"  {item.name}", flush=True)
-    else:
-        print("src directory does not exist!", flush=True)
+            sys.stderr.write(f"  {item.name}\n")
+        sys.stderr.flush()
+    
+    # Check if main.py exists
+    main_py = Path('src/main.py')
+    sys.stderr.write(f"src/main.py exists: {main_py.exists()}\n")
+    sys.stderr.write(f"src/main.py absolute path: {main_py.absolute()}\n")
+    sys.stderr.flush()
     
     clean()
     install()
