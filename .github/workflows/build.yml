@@ -22,12 +22,25 @@ jobs:
           Write-Host "Files in .github directory:"
           Get-ChildItem .github | Select-Object Name
       - run: python .github/scripts/build.py
+      - name: Check dist directory
+        run: |
+          Write-Host "Contents of dist directory:"
+          if (Test-Path dist) {
+            Get-ChildItem -Path dist -Recurse | Select-Object FullName, Length
+          } else {
+            Write-Host "dist directory does not exist!"
+          }
+      - name: Create release package
+        run: |
+          $version = "${{ github.ref_name }}"
+          Write-Host "Creating release for version: $version"
+          if (Test-Path dist) {
+            Compress-Archive -Path dist\* -DestinationPath "PSDBatchProcessor-$version.zip"
+            Write-Host "Created archive: PSDBatchProcessor-$version.zip"
+          }
       - uses: softprops/action-gh-release@v1
         if: github.event_name == 'push'
         with:
-          files: |
-            dist/PSDBatchProcessor-Windowed/*
-            dist/PSDBatchProcessor-Console/*
-            dist/PSDBatchProcessor-OneFile.exe
+          files: PSDBatchProcessor-*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
