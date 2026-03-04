@@ -8,6 +8,11 @@ PSD Batch Processor 一键构建脚本
 import subprocess
 import shutil
 from pathlib import Path
+# 切换到项目根目录
+import os
+os.chdir(Path(__file__).parent.parent)
+print(f'工作目录: {os.getcwd()}')
+
 
 def run_command(cmd, description):
     """执行命令并显示结果"""
