@@ -31,94 +31,103 @@ jobs:
         python-version: '3.13'
         
     - name: Install dependencies
+      shell: cmd
       run: |
         python -m pip install --upgrade pip
         pip install pyinstaller PyQt5 PyQt-Fluent-Widgets pywin32 pillow
         
     - name: Clean old builds
+      shell: cmd
       run: |
         if exist build rmdir /s /q build
         if exist dist rmdir /s /q dist
         if exist __pycache__ rmdir /s /q __pycache__
         
-    - name: Set environment variables
-      run: |
-        set PYTHONIOENCODING=utf-8
-        echo "PYTHONIOENCODING=utf-8" >> $env:GITHUB_ENV
-        
     - name: Build Windowed Mode
       if: github.event.inputs.build_mode == 'windowed' || github.event.inputs.build_mode == 'all' || github.event_name == 'push'
+      shell: cmd
       run: |
         pyinstaller --name=PSDBatchProcessor-Windowed --noconsole --add-data="docs/guides/START_HERE.txt;docs/guides" --add-data="docs/guides/QUICK_REFERENCE.txt;docs/guides" --add-data="scripts/production/*.jsx;scripts/production" --add-data="scripts/templates/*.jsx;scripts/templates" --add-data="scripts/examples/*.jsx;scripts/examples" --hidden-import=win32com --hidden-import=pythoncom --hidden-import=PIL --hidden-import=customtkinter --exclude-module=torch --exclude-module=torchvision --exclude-module=torchaudio --exclude-module=tensorflow --exclude-module=keras --exclude-module=scipy --exclude-module=numpy --exclude-module=sympy --exclude-module=onnxruntime --exclude-module=selenium --exclude-module=playwright --exclude-module=requests --exclude-module=beautifulsoup4 --exclude-module=lxml --exclude-module=bs4 --exclude-module=pandas --exclude-module=matplotlib --exclude-module=cv2 --exclude-module=opencv-python --exclude-module=pytest --exclude-module=black --exclude-module=flake8 --exclude-module=langchain --exclude-module=openai --exclude-module=anthropic --exclude-module=transformers --exclude-module=tokenizers --exclude-module=huggingface_hub --exclude-module=tkinter --exclude-module=turtle --clean --noconfirm src/main.py
         
     - name: Build Console Mode
       if: github.event.inputs.build_mode == 'console' || github.event.inputs.build_mode == 'all'
+      shell: cmd
       run: |
         pyinstaller --name=PSDBatchProcessor-Console --console --add-data="docs/guides/START_HERE.txt;docs/guides" --add-data="docs/guides/QUICK_REFERENCE.txt;docs/guides" --add-data="scripts/production/*.jsx;scripts/production" --add-data="scripts/templates/*.jsx;scripts/templates" --add-data="scripts/examples/*.jsx;scripts/examples" --hidden-import=win32com --hidden-import=pythoncom --hidden-import=PIL --hidden-import=customtkinter --exclude-module=torch --exclude-module=torchvision --exclude-module=torchaudio --exclude-module=tensorflow --exclude-module=keras --exclude-module=scipy --exclude-module=numpy --exclude-module=sympy --exclude-module=onnxruntime --exclude-module=selenium --exclude-module=playwright --exclude-module=requests --exclude-module=beautifulsoup4 --exclude-module=lxml --exclude-module=bs4 --exclude-module=pandas --exclude-module=matplotlib --exclude-module=cv2 --exclude-module=opencv-python --exclude-module=pytest --exclude-module=black --exclude-module=flake8 --exclude-module=langchain --exclude-module=openai --exclude-module=anthropic --exclude-module=transformers --exclude-module=tokenizers --exclude-module=huggingface_hub --exclude-module=tkinter --exclude-module=turtle --clean --noconfirm src/main.py
         
     - name: Build One-file Mode
       if: github.event.inputs.build_mode == 'onefile' || github.event.inputs.build_mode == 'all'
+      shell: cmd
       run: |
         pyinstaller --name=PSDBatchProcessor-OneFile --noconsole --onefile --add-data="docs/guides/START_HERE.txt;docs/guides" --add-data="docs/guides/QUICK_REFERENCE.txt;docs/guides" --add-data="scripts/production/*.jsx;scripts/production" --add-data="scripts/templates/*.jsx;scripts/templates" --add-data="scripts/examples/*.jsx;scripts/examples" --hidden-import=win32com --hidden-import=pythoncom --hidden-import=PIL --hidden-import=customtkinter --exclude-module=torch --exclude-module=torchvision --exclude-module=torchaudio --exclude-module=tensorflow --exclude-module=keras --exclude-module=scipy --exclude-module=numpy --exclude-module=sympy --exclude-module=onnxruntime --exclude-module=selenium --exclude-module=playwright --exclude-module=requests --exclude-module=beautifulsoup4 --exclude-module=lxml --exclude-module=bs4 --exclude-module=pandas --exclude-module=matplotlib --exclude-module=cv2 --exclude-module=opencv-python --exclude-module=pytest --exclude-module=black --exclude-module=flake8 --exclude-module=langchain --exclude-module=openai --exclude-module=anthropic --exclude-module=transformers --exclude-module=tokenizers --exclude-module=huggingface_hub --exclude-module=tkinter --exclude-module=turtle --clean --noconfirm src/main.py
         if not exist "dist\PSDBatchProcessor-OneFile-Portable" mkdir "dist\PSDBatchProcessor-OneFile-Portable"
         move /y "dist\PSDBatchProcessor-OneFile.exe" "dist\PSDBatchProcessor-OneFile-Portable\"
         
-    - name: Copy additional files
+    - name: Copy files - Windowed
+      if: github.event.inputs.build_mode == 'windowed' || github.event.inputs.build_mode == 'all' || github.event_name == 'push'
+      shell: cmd
       run: |
-        python tools/build_all.py
+        copy /y README.md dist\PSDBatchProcessor-Windowed\
+        if not exist "dist\PSDBatchProcessor-Windowed\docs\guides" mkdir "dist\PSDBatchProcessor-Windowed\docs\guides"
+        copy /y docs\guides\START_HERE.txt dist\PSDBatchProcessor-Windowed\docs\guides\
+        copy /y docs\guides\QUICK_REFERENCE.txt dist\PSDBatchProcessor-Windowed\docs\guides\
+        if not exist "dist\PSDBatchProcessor-Windowed\scripts" xcopy /e /i /y scripts dist\PSDBatchProcessor-Windowed\scripts
+        if not exist "dist\PSDBatchProcessor-Windowed\backups" mkdir "dist\PSDBatchProcessor-Windowed\backups"
+        
+    - name: Copy files - Console
+      if: github.event.inputs.build_mode == 'console' || github.event.inputs.build_mode == 'all'
+      shell: cmd
+      run: |
+        copy /y README.md dist\PSDBatchProcessor-Console\
+        if not exist "dist\PSDBatchProcessor-Console\docs\guides" mkdir "dist\PSDBatchProcessor-Console\docs\guides"
+        copy /y docs\guides\START_HERE.txt dist\PSDBatchProcessor-Console\docs\guides\
+        copy /y docs\guides\QUICK_REFERENCE.txt dist\PSDBatchProcessor-Console\docs\guides\
+        if not exist "dist\PSDBatchProcessor-Console\scripts" xcopy /e /i /y scripts dist\PSDBatchProcessor-Console\scripts
+        if not exist "dist\PSDBatchProcessor-Console\backups" mkdir "dist\PSDBatchProcessor-Console\backups"
+        
+    - name: Copy files - OneFile
+      if: github.event.inputs.build_mode == 'onefile' || github.event.inputs.build_mode == 'all'
+      shell: cmd
+      run: |
+        copy /y README.md dist\PSDBatchProcessor-OneFile-Portable\
+        if not exist "dist\PSDBatchProcessor-OneFile-Portable\docs\guides" mkdir "dist\PSDBatchProcessor-OneFile-Portable\docs\guides"
+        copy /y docs\guides\START_HERE.txt dist\PSDBatchProcessor-OneFile-Portable\docs\guides\
+        copy /y docs\guides\QUICK_REFERENCE.txt dist\PSDBatchProcessor-OneFile-Portable\docs\guides\
+        if not exist "dist\PSDBatchProcessor-OneFile-Portable\scripts" xcopy /e /i /y scripts dist\PSDBatchProcessor-OneFile-Portable\scripts
+        if not exist "dist\PSDBatchProcessor-OneFile-Portable\backups" mkdir "dist\PSDBatchProcessor-OneFile-Portable\backups"
         
     - name: Get version
+      shell: cmd
       id: version
-      shell: pwsh
       run: |
-        $version = "${{ github.ref_name }}"
-        if (-not $version) {
-          $version = "dev-${{ github.run_number }}"
-        }
-        Add-Content -Path $env:GITHUB_OUTPUT -Value "version=$version"
+        set VERSION=%GITHUB_REF_NAME%
+        if "%VERSION%"=="" set VERSION=dev-%GITHUB_RUN_NUMBER%
+        echo version=%VERSION% >> %GITHUB_OUTPUT%
         
     - name: Create Release Package
-      shell: pwsh
+      shell: cmd
       run: |
-        $version = "${{ steps.version.outputs.version }}"
-        $releaseDir = "dist/PSDBatchProcessor-$version"
+        set VERSION=${{ steps.version.outputs.version }}
+        set RELEASE_DIR=dist\PSDBatchProcessor-%VERSION%
         
-        # Create release directory
-        if (Test-Path $releaseDir) {
-          Remove-Item -Recurse -Force $releaseDir
-        }
-        New-Item -ItemType Directory -Path $releaseDir | Out-Null
+        if exist "%RELEASE_DIR%" rmdir /s /q "%RELEASE_DIR%"
+        mkdir "%RELEASE_DIR%"
         
-        # Copy Windowed mode
-        if (Test-Path "dist/PSDBatchProcessor-Windowed") {
-          Copy-Item -Recurse "dist/PSDBatchProcessor-Windowed" "$releaseDir/Windowed"
-        }
+        if exist "dist\PSDBatchProcessor-Windowed" xcopy /e /i /y "dist\PSDBatchProcessor-Windowed" "%RELEASE_DIR%\Windowed"
+        if exist "dist\PSDBatchProcessor-Console" xcopy /e /i /y "dist\PSDBatchProcessor-Console" "%RELEASE_DIR%\Console"
+        if exist "dist\PSDBatchProcessor-OneFile-Portable" xcopy /e /i /y "dist\PSDBatchProcessor-OneFile-Portable" "%RELEASE_DIR%\OneFile"
         
-        # Copy Console mode
-        if (Test-Path "dist/PSDBatchProcessor-Console") {
-          Copy-Item -Recurse "dist/PSDBatchProcessor-Console" "$releaseDir/Console"
-        }
+        if exist "README.md" copy /y "README.md" "%RELEASE_DIR%\"
         
-        # Copy One-file mode
-        if (Test-Path "dist/PSDBatchProcessor-OneFile-Portable") {
-          Copy-Item -Recurse "dist/PSDBatchProcessor-OneFile-Portable" "$releaseDir/OneFile"
-        }
-        
-        # Copy README
-        if (Test-Path "README.md") {
-          Copy-Item "README.md" "$releaseDir"
-        }
-        
-        Write-Host "Created release package: $releaseDir"
+        echo Created release package: %RELEASE_DIR%
         
     - name: Zip Release
       shell: pwsh
       run: |
         $version = "${{ steps.version.outputs.version }}"
         $releaseDir = "dist/PSDBatchProcessor-$version"
-        
         if (Test-Path $releaseDir) {
-          Compress-Archive -Path "$releaseDir/*" -DestinationPath "$releaseDir.zip"
+          Compress-Archive -Path "$releaseDir\*" -DestinationPath "$releaseDir.zip"
           Write-Host "Created zip: $releaseDir.zip"
         }
         
