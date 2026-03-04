@@ -51,13 +51,17 @@ def build():
         print(f"Built {name}")
 
 def main():
-    script_dir = Path(__file__).parent.parent
-    sys.stderr.write(f"Script file: {__file__}\n")
-    sys.stderr.write(f"Script directory: {script_dir}\n")
+    # Get the project root directory (parent of .github directory)
+    script_file = Path(__file__).resolve()
+    project_root = script_file.parent.parent
+    
+    sys.stderr.write(f"Script file: {script_file}\n")
+    sys.stderr.write(f"Project root: {project_root}\n")
     sys.stderr.write(f"Current directory: {os.getcwd()}\n")
     sys.stderr.flush()
     
-    os.chdir(script_dir)
+    # Change to project root directory
+    os.chdir(project_root)
     sys.stderr.write(f"After chdir - Current directory: {os.getcwd()}\n")
     sys.stderr.flush()
     
