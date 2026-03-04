@@ -1,41 +1,47 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-PSD Batch Processor 一键构建脚本
-自动构建所有三个版本
+PSD Batch Processor One-click Build Script
+Automatically builds all three versions
 """
 
 import subprocess
 import shutil
 from pathlib import Path
-# 切换到项目根目录
+
+# Set stdout encoding
+import sys
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
+# Switch to project root directory
 import os
 os.chdir(Path(__file__).parent.parent)
-print(f'工作目录: {os.getcwd()}')
+print(f"Working directory: {os.getcwd()}")
 
 
 def run_command(cmd, description):
-    """执行命令并显示结果"""
+    """Execute command and display result"""
     print(f"\n{'='*60}")
     print(f"{description}")
     print(f"{'='*60}")
     result = subprocess.run(cmd)
     if result.returncode == 0:
-        print(f"✅ {description} 完成！")
+        print(f"SUCCESS: {description} completed!")
         return True
     else:
-        print(f"❌ {description} 失败！")
+        print(f"FAILED: {description} failed!")
         return False
 
 def copy_files(output_dir):
-    """复制必要文件到输出目录"""
+    """Copy necessary files to output directory"""
     project_dir = Path(__file__).parent.parent
     
-    # 复制 README
+    # Copy README
     if (project_dir / "README.md").exists():
         shutil.copy2(project_dir / "README.md", output_dir)
     
-    # 复制文档
+    # Copy documentation
     guides_dir = output_dir / "docs" / "guides"
     guides_dir.mkdir(parents=True, exist_ok=True)
     
@@ -44,19 +50,19 @@ def copy_files(output_dir):
         if src.exists():
             shutil.copy2(src, guides_dir)
     
-    # 复制脚本文件
+    # Copy script files
     scripts_dir = output_dir / "scripts"
     if not scripts_dir.exists():
         source_scripts = project_dir / "scripts"
         if source_scripts.exists():
             shutil.copytree(source_scripts, scripts_dir)
     
-    # 创建备份目录
+    # Create backup directory
     backups_dir = output_dir / "backups"
     backups_dir.mkdir(parents=True, exist_ok=True)
 
 def get_file_size(path):
-    """获取文件大小"""
+    """Get file size"""
     if path.exists():
         size = path.stat().st_size
         if size < 1024:
@@ -69,21 +75,21 @@ def get_file_size(path):
 
 def main():
     print("="*60)
-    print("PSD Batch Processor 一键构建工具")
+    print("PSD Batch Processor One-click Build Tool")
     print("="*60)
     
     project_dir = Path(__file__).parent.parent
     dist_dir = project_dir / "dist"
     
-    # 清理旧的构建文件
-    print("\n清理旧的构建文件...")
+    # Clean old build files
+    print("\nCleaning old build files...")
     for dir_name in ["build", "dist", "__pycache__"]:
         dir_path = project_dir / dir_name
         if dir_path.exists():
             shutil.rmtree(dir_path)
-            print(f"  ✓ 删除 {dir_name}")
+            print(f"  [OK] Deleted {dir_name}")
     
-    # 定义排除模块
+    # Define exclude modules
     exclude = [
         '--exclude-module=torch', '--exclude-module=torchvision', '--exclude-module=torchaudio',
         '--exclude-module=tensorflow', '--exclude-module=keras', '--exclude-module=scipy',
@@ -97,10 +103,10 @@ def main():
         '--exclude-module=huggingface_hub', '--exclude-module=tkinter', '--exclude-module=turtle'
     ]
     
-    # 定义隐藏导入
+    # Define hidden imports
     hidden = ['--hidden-import=win32com', '--hidden-import=pythoncom', '--hidden-import=PIL', '--hidden-import=customtkinter']
     
-    # 定义数据文件
+    # Define data files
     data = [
         '--add-data=docs/guides/START_HERE.txt;docs/guides',
         '--add-data=docs/guides/QUICK_REFERENCE.txt;docs/guides',
@@ -111,41 +117,41 @@ def main():
     
     results = {}
     
-    # 构建窗口模式
+    # Build windowed mode
     cmd = ['pyinstaller', '--name=PSDBatchProcessor-Windowed', '--noconsole', '--clean', '--noconfirm']
     cmd.extend(data)
     cmd.extend(hidden)
     cmd.extend(exclude)
     cmd.append('src/main.py')
     
-    if run_command(cmd, "构建窗口模式"):
+    if run_command(cmd, "Building Windowed Mode"):
         copy_files(dist_dir / "PSDBatchProcessor-Windowed")
         results['windowed'] = True
     else:
         results['windowed'] = False
     
-    # 构建控制台模式
+    # Build console mode
     cmd = ['pyinstaller', '--name=PSDBatchProcessor-Console', '--console', '--clean', '--noconfirm']
     cmd.extend(data)
     cmd.extend(hidden)
     cmd.extend(exclude)
     cmd.append('src/main.py')
     
-    if run_command(cmd, "构建控制台模式"):
+    if run_command(cmd, "Building Console Mode"):
         copy_files(dist_dir / "PSDBatchProcessor-Console")
         results['console'] = True
     else:
         results['console'] = False
     
-    # 构建单文件模式
+    # Build one-file mode
     cmd = ['pyinstaller', '--name=PSDBatchProcessor-OneFile', '--noconsole', '--onefile', '--clean', '--noconfirm']
     cmd.extend(data)
     cmd.extend(hidden)
     cmd.extend(exclude)
     cmd.append('src/main.py')
     
-    if run_command(cmd, "构建单文件模式"):
-        # 移动到便携目录
+    if run_command(cmd, "Building One-file Mode"):
+        # Move to portable directory
         onefile_dir = dist_dir / "PSDBatchProcessor-OneFile-Portable"
         onefile_dir.mkdir(parents=True, exist_ok=True)
         
@@ -160,40 +166,40 @@ def main():
     else:
         results['onefile'] = False
     
-    # 显示结果
+    # Display results
     print("\n" + "="*60)
-    print("构建结果汇总")
+    print("Build Results Summary")
     print("="*60)
     
     if results.get('windowed'):
         exe_path = dist_dir / "PSDBatchProcessor-Windowed" / "PSDBatchProcessor-Windowed.exe"
-        print(f"\n✅ 窗口模式:")
-        print(f"   路径: dist/PSDBatchProcessor-Windowed/")
-        print(f"   文件: PSDBatchProcessor-Windowed.exe")
-        print(f"   大小: {get_file_size(exe_path)}")
+        print(f"\n[OK] Windowed Mode:")
+        print(f"   Path: dist/PSDBatchProcessor-Windowed/")
+        print(f"   File: PSDBatchProcessor-Windowed.exe")
+        print(f"   Size: {get_file_size(exe_path)}")
     
     if results.get('console'):
         exe_path = dist_dir / "PSDBatchProcessor-Console" / "PSDBatchProcessor-Console.exe"
-        print(f"\n✅ 控制台模式:")
-        print(f"   路径: dist/PSDBatchProcessor-Console/")
-        print(f"   文件: PSDBatchProcessor-Console.exe")
-        print(f"   大小: {get_file_size(exe_path)}")
+        print(f"\n[OK] Console Mode:")
+        print(f"   Path: dist/PSDBatchProcessor-Console/")
+        print(f"   File: PSDBatchProcessor-Console.exe")
+        print(f"   Size: {get_file_size(exe_path)}")
     
     if results.get('onefile'):
         exe_path = dist_dir / "PSDBatchProcessor-OneFile-Portable" / "PSDBatchProcessor-OneFile.exe"
-        print(f"\n✅ 单文件模式:")
-        print(f"   路径: dist/PSDBatchProcessor-OneFile-Portable/")
-        print(f"   文件: PSDBatchProcessor-OneFile.exe")
-        print(f"   大小: {get_file_size(exe_path)}")
+        print(f"\n[OK] One-file Mode:")
+        print(f"   Path: dist/PSDBatchProcessor-OneFile-Portable/")
+        print(f"   File: PSDBatchProcessor-OneFile.exe")
+        print(f"   Size: {get_file_size(exe_path)}")
     
     success_count = sum(results.values())
     total_count = len(results)
     
     print(f"\n{'='*60}")
     if success_count == total_count:
-        print(f"🎉 所有构建成功完成！ ({success_count}/{total_count})")
+        print(f"SUCCESS: All builds completed! ({success_count}/{total_count})")
     else:
-        print(f"⚠️  部分构建失败！ ({success_count}/{total_count})")
+        print(f"WARNING: Some builds failed! ({success_count}/{total_count})")
     print(f"{'='*60}")
 
 if __name__ == "__main__":
