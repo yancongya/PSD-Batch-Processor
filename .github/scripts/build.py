@@ -47,7 +47,13 @@ def build():
         print(f"Built {name}")
 
 def main():
-    os.chdir(Path(__file__).parent.parent)
+    script_dir = Path(__file__).parent.parent
+    os.chdir(script_dir)
+    
+    print(f"Current directory: {os.getcwd()}")
+    print(f"Script directory: {script_dir}")
+    print(f"src/main.py exists: {(Path('src/main.py').exists())}")
+    
     clean()
     install()
     build()
