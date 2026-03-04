@@ -51,16 +51,15 @@ def build():
         print(f"Built {name}")
 
 def main():
-    # Get the project root directory
+    # Get the project root directory using relative paths
     # Script is at: .github/scripts/build.py
-    # Project root should be: parent.parent.parent of the script
-    script_file = Path(__file__).resolve()
-    project_root = script_file.parent.parent.parent
+    # Project root should be: ../../ relative to the script
+    script_file = Path(__file__)
+    project_root = script_file.parent.parent.parent.resolve()
     
     sys.stderr.write(f"Script file: {script_file}\n")
-    sys.stderr.write(f"Script parent: {script_file.parent}\n")
-    sys.stderr.write(f"Script parent.parent: {script_file.parent.parent}\n")
-    sys.stderr.write(f"Project root (parent.parent.parent): {project_root}\n")
+    sys.stderr.write(f"Script location: {script_file.absolute()}\n")
+    sys.stderr.write(f"Project root: {project_root}\n")
     sys.stderr.write(f"Current directory: {os.getcwd()}\n")
     sys.stderr.flush()
     
@@ -72,6 +71,7 @@ def main():
     # Check if src directory exists
     src_dir = Path('src')
     sys.stderr.write(f"src directory exists: {src_dir.exists()}\n")
+    sys.stderr.write(f"src directory absolute: {src_dir.absolute()}\n")
     sys.stderr.flush()
     
     if src_dir.exists():
