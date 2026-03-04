@@ -169,8 +169,9 @@ jobs:
         move /y "dist\PSDBatchProcessor-OneFile.exe" "dist\PSDBatchProcessor-OneFile-Portable\"
         
     - name: Copy additional files
-      shell: cmd
+      shell: pwsh
       run: |
+        $env:PYTHONIOENCODING = "utf-8"
         python tools/build_all.py
         
     - name: Get version
