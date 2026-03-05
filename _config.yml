@@ -1,4 +1,9 @@
 # GitHub Pages 配置
-# 禁用 Jekyll 构建，直接部署静态 HTML 文件
-theme: jekyll-theme-minimal
+# 禁用 Jekyll，直接部署静态 HTML 文件
+# 因为 GitHub Actions 被禁用，无法运行 Jekyll 构建
+markdown: kramdown
+theme: null
 plugins: []
+include: ["index.html", "pic/"]
+exclude: []
+keep_files: ["index.html", "pic/"]
