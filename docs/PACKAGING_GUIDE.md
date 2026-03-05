@@ -2,11 +2,75 @@
 
 ## 📦 打包方案概述
 
-可以使用 PyInstaller 将项目打包成独立的 EXE 文件，方便分发和使用。
+本项目提供两种打包方式：
 
-## 🎯 推荐方案
+1. **自动构建**：使用 GitHub Actions 自动构建和发布
+2. **手动构建**：在本地使用 PyInstaller 打包
 
-### 方案 1：PyInstaller (最常用)
+## 🚀 方式 1：自动构建（推荐）
+
+### GitHub Actions 自动构建
+
+项目使用 GitHub Actions 实现自动化构建和发布流程。
+
+#### 特点
+
+- ✅ **自动化**：推送标签时自动构建
+- ✅ **多版本**：同时构建 Windowed、Console、OneFile 三个版本
+- ✅ **版本管理**：基于 Git 标签管理版本
+- ✅ **一键发布**：自动创建 GitHub Release
+- ✅ **持续集成**：确保构建质量
+
+#### 触发方式
+
+```bash
+# 创建版本标签（格式：v*）
+git tag v1.0.1
+
+# 推送标签，自动触发构建
+git push origin v1.0.1
+```
+
+#### 构建产物
+
+- `PSDBatchProcessor-vX.X.X.zip`：包含所有三个版本的完整包
+
+#### 发布位置
+
+访问 GitHub Releases 页面下载：
+https://github.com/yancongya/PSD-Batch-Processor/releases
+
+#### 工作流配置
+
+工作流文件：`.github/workflows/build.yml`
+
+触发条件：
+- 推送 `v*` 标签（自动触发）
+- 手动触发（workflow_dispatch）
+
+构建环境：
+- Windows Server 2022
+- Python 3.13
+- PyInstaller 6.19+
+
+#### 手动触发
+
+如果需要手动触发构建：
+
+1. 访问：https://github.com/yancongya/PSD-Batch-Processor/actions/workflows/build.yml
+2. 点击 "Run workflow" 按钮
+3. 选择分支并确认
+
+#### 查看构建状态
+
+- **GitHub Actions 页面**：https://github.com/yancongya/PSD-Batch-Processor/actions
+- **使用辅助脚本**：双击 `github_actions_helper.bat` 选择选项 2
+
+## 🎯 方式 2：手动构建
+
+### 推荐方案
+
+#### 方案 1：PyInstaller (最常用)
 **优点**：
 - 成熟稳定
 - 社区支持好
@@ -19,7 +83,7 @@
 
 **推荐**：使用 PyInstaller，最成熟且适合本项目。
 
-## 🚀 快速开始（推荐）
+## 🔧 快速开始（手动构建）
 
 ### 方法 1：使用一键构建脚本（最简单）
 

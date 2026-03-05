@@ -33,9 +33,27 @@
 - **信息提示**: 优雅的错误/警告/成功提示
 - **快捷操作**: 一键打开输出文件夹
 
-## 📦 快速开始
+## 🚀 快速开始
 
-### 1. 安装依赖
+### 方式 1：下载预编译版本（推荐）
+
+直接从 GitHub Releases 下载预编译的可执行文件：
+
+1. **访问 Release 页面**：
+   https://github.com/yancongya/PSD-Batch-Processor/releases
+
+2. **下载最新版本**：
+   - `PSDBatchProcessor-vX.X.X.zip`
+   - 包含三个版本：Windowed、Console、OneFile
+
+3. **解压并运行**：
+   - Windowed 版本：双击 `PSDBatchProcessor-Windowed.exe`
+   - Console 版本：双击 `PSDBatchProcessor-Console.exe`
+   - OneFile 版本：双击 `PSDBatchProcessor-OneFile.exe`
+
+### 方式 2：从源码运行
+
+#### 1. 安装依赖
 
 #### 方法 A: 使用安装脚本（推荐）
 ```bash
@@ -326,7 +344,39 @@ pip install --upgrade PyQt5 PyQt-Fluent-Widgets
 
 ## 📦 打包发布
 
-### 使用 PyInstaller 打包
+### 自动构建（推荐）
+
+项目使用 GitHub Actions 进行自动构建和发布：
+
+- **触发方式**：推送 `v*` 标签时自动构建
+- **构建内容**：Windowed、Console、OneFile 三个版本
+- **发布位置**：https://github.com/yancongya/PSD-Batch-Processor/releases
+- **版本控制**：基于 Git 标签管理
+
+**示例**：
+```bash
+# 创建新版本标签并推送，自动触发构建
+git tag v1.0.1
+git push origin v1.0.1
+```
+
+### 手动构建
+
+#### 使用一键构建脚本（最简单）
+
+**Windows 用户**：
+```batch
+# 双击运行
+tools\build.bat
+```
+
+**跨平台**：
+```bash
+# 运行 Python 脚本
+python tools/build_all.py
+```
+
+#### 使用 PyInstaller 手动打包
 
 ```bash
 # 安装 PyInstaller
@@ -350,13 +400,7 @@ pyinstaller ^
     src/main_fluent.py
 ```
 
-### 使用打包脚本
-
-```bash
-# 使用 tools\build.bat
-# 选择 "One-file mode (portable)"
-python tools\build.bat
-```
+详细打包说明请查看 [docs/PACKAGING_GUIDE.md](docs/PACKAGING_GUIDE.md)。
 
 ## 🤝 版本对比
 
