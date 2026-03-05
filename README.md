@@ -136,6 +136,25 @@ PSD Batch Processor/
 └── README_FLUENT.md                     # 本文档
 ```
 
+## 🖼️ 软件截图
+
+### 主页界面
+![主页界面](pic/home.jpg)
+
+### 脚本管理
+![脚本管理](pic/scripts.jpg)
+
+### 日志查看
+![日志查看](pic/log.jpg)
+
+### 设置界面
+![设置界面](pic/settings.jpg)
+
+## 🔗 产品官网
+
+访问产品官网了解更多信息和最新动态：
+https://www.doubao.com/share/code/f57b52f9b4b66c1d?is_code=1
+
 ## 🎨 界面预览
 
 ### 主页界面
