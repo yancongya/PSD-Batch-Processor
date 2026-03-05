@@ -479,5 +479,4 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 
 **版本**: 1.0.0
 **更新日期**: 2026-01-24
-**维护者**: Claude Code
 **状态**: ✅ 生产就绪
