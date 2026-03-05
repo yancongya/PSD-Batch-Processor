@@ -1,0 +1,1876 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PSD Batch Processor - 现代化PSD批量处理工具</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- GSAP 动画库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
+    <!-- ScrollReveal -->
+    <script src="https://unpkg.com/scrollreveal@4.0.9/dist/scrollreveal.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#e6f1fe',
+                            100: '#cce3fd',
+                            200: '#99c7fb',
+                            300: '#66abf9',
+                            400: '#338ff7',
+                            500: '#1E88E5', // 主色调
+                            600: '#1976d2',
+                            700: '#1565c0',
+                            800: '#0d47a1',
+                            900: '#0a2351',
+                        },
+                        dark: {
+                            100: '#1e1e1e',
+                            200: '#252526',
+                            300: '#333333',
+                            400: '#3c3c3c',
+                            500: '#464647',
+                            600: '#616161',
+                            700: '#969696',
+                            800: '#cccccc',
+                            900: '#f2f2f2',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a;
+            color: #f2f2f2;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+        }
+        
+        .card {
+            background: rgba(30, 30, 30, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(30, 136, 229, 0.2);
+            border-color: rgba(30, 136, 229, 0.5);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #1E88E5 0%, #1565C0 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(30, 136, 229, 0.3);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(30, 136, 229, 0.4);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid #1E88E5;
+            border-radius: 8px;
+            padding: 10px 22px;
+            color: #1E88E5;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(30, 136, 229, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .feature-icon {
+            background: linear-gradient(135deg, #1E88E5 0%, #1565C0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .hero-section {
+            min-height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #hero-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        
+        .nav-link {
+            position: relative;
+            padding: 8px 16px;
+            color: #f2f2f2;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link:hover {
+            color: #1E88E5;
+        }
+        
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background: #1E88E5;
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+        }
+        
+        .nav-link:hover::after {
+            width: 80%;
+        }
+        
+        .active-nav {
+            color: #1E88E5;
+        }
+        
+        .active-nav::after {
+            width: 80%;
+        }
+        
+        .section-title {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 2rem;
+        }
+        
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(135deg, #1E88E5 0%, #1565C0 100%);
+            border-radius: 2px;
+        }
+        
+        .feature-card {
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* 背景光效 */
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(30, 136, 229, 0.15), transparent);
+            transition: all 0.8s ease;
+            z-index: 0;
+        }
+        
+        .feature-card:hover::before {
+            left: 100%;
+        }
+        
+        /* 卡片悬停效果 */
+        .feature-card:hover {
+            transform: translateY(-10px) scale(1.03);
+            box-shadow: 0 20px 40px rgba(30, 136, 229, 0.3);
+            border-color: rgba(30, 136, 229, 0.8);
+            background: rgba(30, 30, 30, 0.85);
+        }
+        
+        /* 图标容器 */
+        .feature-icon-container {
+            position: relative;
+            display: inline-block;
+            z-index: 1;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        .feature-card:hover .feature-icon-container {
+            transform: translateY(-5px);
+        }
+        
+        /* 图标效果 */
+        .feature-icon {
+            transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: inline-block;
+        }
+        
+        .feature-card:hover .feature-icon {
+            transform: scale(1.3) rotateY(180deg);
+            filter: drop-shadow(0 0 15px rgba(30, 136, 229, 0.8));
+        }
+        
+        /* 标题效果 */
+        .feature-card h3 {
+            transition: all 0.4s ease;
+            position: relative;
+            z-index: 1;
+            display: inline-block;
+        }
+        
+        .feature-card h3::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: #1E88E5;
+            transition: all 0.4s ease;
+        }
+        
+        .feature-card:hover h3 {
+            color: #1E88E5;
+            transform: translateX(5px);
+        }
+        
+        .feature-card:hover h3::after {
+            width: 100%;
+        }
+        
+        /* 描述文本效果 */
+        .feature-card p {
+            transition: all 0.5s ease;
+            position: relative;
+            z-index: 1;
+            opacity: 0.9;
+        }
+        
+        .feature-card:hover p {
+            transform: translateX(5px);
+            opacity: 1;
+        }
+        
+        /* 底部装饰条 */
+        .feature-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #1E88E5, #1565C0);
+            transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1;
+        }
+        
+        .feature-card:hover::after {
+            width: 100%;
+        }
+        
+        .screenshot {
+            border-radius: 12px;
+            border: 2px solid rgba(30, 136, 229, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+        
+        .screenshot:hover {
+            transform: scale(1.02);
+            box-shadow: 0 15px 40px rgba(30, 136, 229, 0.3);
+        }
+        
+        .step-card {
+            position: relative;
+            padding-left: 2rem;
+        }
+        
+        .step-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 3px;
+            height: 100%;
+            background: linear-gradient(to bottom, #1E88E5, #1565C0);
+            border-radius: 3px;
+        }
+        
+        .step-number {
+            position: absolute;
+            left: -10px;
+            top: 0;
+            width: 20px;
+            height: 20px;
+            background: #1E88E5;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .download-card {
+            background: linear-gradient(135deg, rgba(30, 136, 229, 0.1) 0%, rgba(21, 101, 192, 0.1) 100%);
+            border: 1px solid rgba(30, 136, 229, 0.3);
+        }
+        
+        .download-btn {
+            background: linear-gradient(135deg, #1E88E5 0%, #1565C0 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .download-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(30, 136, 229, 0.4);
+        }
+        
+        .version-badge {
+            background: rgba(30, 136, 229, 0.2);
+            color: #1E88E5;
+            border: 1px solid rgba(30, 136, 229, 0.3);
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .footer-link {
+            color: #969696;
+            transition: all 0.3s ease;
+        }
+        
+        .footer-link:hover {
+            color: #1E88E5;
+        }
+        
+        .social-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #969696;
+            transition: all 0.3s ease;
+        }
+        
+        .social-icon:hover {
+            background: #1E88E5;
+            color: white;
+            transform: translateY(-3px);
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .hero-content {
+                text-align: center;
+            }
+            
+            .hero-buttons {
+                justify-content: center;
+            }
+            
+            .section-title {
+                text-align: center;
+            }
+            
+            .section-title::after {
+                left: 50%;
+                transform: translateX(-50%);
+            }
+        }
+        
+        /* 动画类 */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        
+        .fade-in.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #1E88E5;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #1565C0;
+        }
+    </style>
+</head>
+<body class="gradient-bg">
+    <!-- 导航栏 -->
+    <nav class="fixed top-0 left-0 w-full bg-opacity-90 bg-dark-100 backdrop-blur-md z-50 border-b border-dark-300">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                    <div class="text-primary-500 text-2xl font-bold mr-2">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <a href="#" class="text-xl font-bold text-white">PSD Batch Processor</a>
+                </div>
+                
+                <!-- 桌面导航 -->
+                <div class="hidden md:flex items-center space-x-1">
+                    <a href="#features" class="nav-link">功能特性</a>
+                    <a href="#screenshots" class="nav-link">界面预览</a>
+                    <a href="#scripts" class="nav-link">预设脚本</a>
+                    <a href="#guide" class="nav-link">使用指南</a>
+                    <a href="#download" class="nav-link">下载</a>
+                    <a href="#faq" class="nav-link">常见问题</a>
+                </div>
+                
+                <!-- 移动端菜单按钮 -->
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="text-white focus:outline-none">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 移动端导航菜单 -->
+            <div id="mobile-menu" class="md:hidden hidden pt-4 pb-2">
+                <a href="#features" class="block py-2 px-4 text-sm hover:bg-dark-200 rounded">功能特性</a>
+                <a href="#screenshots" class="block py-2 px-4 text-sm hover:bg-dark-200 rounded">界面预览</a>
+                <a href="#guide" class="block py-2 px-4 text-sm hover:bg-dark-200 rounded">使用指南</a>
+                <a href="#scripts" class="block py-2 px-4 text-sm hover:bg-dark-200 rounded">预设脚本</a>
+                <a href="#download" class="block py-2 px-4 text-sm hover:bg-dark-200 rounded">下载</a>
+                <a href="#faq" class="block py-2 px-4 text-sm hover:bg-dark-200 rounded">常见问题</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero 区域 -->
+    <section class="hero-section flex items-center pt-16">
+        <canvas id="hero-canvas"></canvas>
+        <div class="container mx-auto px-4 py-16">
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="md:w-1/2 hero-content mb-10 md:mb-0">
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+                        <span class="text-white">现代化</span>
+                        <span class="text-primary-500">PSD 批量处理器</span>
+                    </h1>
+                    <p class="text-lg md:text-xl text-dark-700 mb-8 max-w-lg">
+                        提升您的设计工作流程效率，自动化处理大量 PSD 文件，支持自定义脚本和批量操作。
+                    </p>
+                    <div class="flex flex-wrap gap-4 hero-buttons">
+                        <a href="#download" class="btn-primary">
+                            <i class="fas fa-download mr-2"></i>立即下载
+                        </a>
+                        <a href="#features" class="btn-secondary">
+                            <i class="fas fa-info-circle mr-2"></i>了解更多
+                        </a>
+                    </div>
+                    <div class="mt-8 flex items-center">
+                        <div class="flex -space-x-2">
+                            <div class="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-xs">JD</div>
+                            <div class="w-8 h-8 rounded-full bg-primary-700 flex items-center justify-center text-xs">AL</div>
+                            <div class="w-8 h-8 rounded-full bg-primary-800 flex items-center justify-center text-xs">MK</div>
+                        </div>
+                        <div class="ml-4 text-sm text-dark-700">
+                            <span class="text-primary-500 font-semibold">500+</span> 设计师正在使用
+                        </div>
+                    </div>
+                </div>
+                <div class="md:w-1/2 flex justify-center">
+                    <img src="https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/6151ece063124399abfa2cc68fcd4b1c~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=2026030514145241F5D76E48DFF888EEC3&rrcfp=f06b921b&x-expires=1775283355&x-signature=ft1sd%2Bi5vwQU%2Fl7y3a2%2Bth5xKng%3D" 
+                         alt="PSD Batch Processor 界面预览" 
+                         class="w-full max-w-md screenshot">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 功能特性 -->
+    <section id="features" class="py-20">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl md:text-4xl font-bold text-center mb-16 section-title mx-auto">功能特性</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- 功能卡片 1 -->
+                <div class="card p-6 feature-card fade-in">
+                    <div class="feature-icon-container">
+                        <div class="feature-icon">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">批量处理</h3>
+                    <p class="text-dark-700">
+                        支持多文件并发处理，大幅提升工作效率。可同时处理数百个 PSD 文件，自动应用预设脚本。
+                    </p>
+                </div>
+                
+                <!-- 功能卡片 2 -->
+                <div class="card p-6 feature-card fade-in" style="animation-delay: 0.2s;">
+                    <div class="feature-icon-container">
+                        <div class="feature-icon">
+                            <i class="fas fa-code"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">脚本管理</h3>
+                    <p class="text-dark-700">
+                        递归扫描子目录中的 JSX 脚本，轻松组织和管理您的自定义脚本库。
+                    </p>
+                </div>
+                
+                <!-- 功能卡片 3 -->
+                <div class="card p-6 feature-card fade-in" style="animation-delay: 0.4s;">
+                    <div class="feature-icon-container">
+                        <div class="feature-icon">
+                            <i class="fas fa-folder-open"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">文件管理</h3>
+                    <p class="text-dark-700">
+                        支持添加单个文件或整个文件夹，实时显示文件状态，方便跟踪处理进度。
+                    </p>
+                </div>
+                
+                <!-- 功能卡片 4 -->
+                <div class="card p-6 feature-card fade-in" style="animation-delay: 0.6s;">
+                    <div class="feature-icon-container">
+                        <div class="feature-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">备份机制</h3>
+                    <p class="text-dark-700">
+                        自动创建时间戳备份文件夹，确保您的原始文件安全无忧，防止意外丢失。
+                    </p>
+                </div>
+                
+                <!-- 功能卡片 5 -->
+                <div class="card p-6 feature-card fade-in" style="animation-delay: 0.8s;">
+                    <div class="feature-icon-container">
+                        <div class="feature-icon">
+                            <i class="fas fa-clipboard-list"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">完整日志</h3>
+                    <p class="text-dark-700">
+                        实时日志查看和保存功能，详细记录每个文件的处理过程，便于故障排查。
+                    </p>
+                </div>
+                
+                <!-- 功能卡片 6 -->
+                <div class="card p-6 feature-card fade-in" style="animation-delay: 1s;">
+                    <div class="feature-icon-container">
+                        <div class="feature-icon">
+                            <i class="fas fa-paint-brush"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">主题切换</h3>
+                    <p class="text-dark-700">
+                        支持深色/浅色主题切换，适应不同工作环境，保护视力，提升使用体验。
+                    </p>
+                </div>
+            </div>
+            
+
+        </div>
+    </section>
+
+    <!-- 界面预览 -->
+    <section id="screenshots" class="py-20 bg-dark-100">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl md:text-4xl font-bold text-center mb-16 section-title mx-auto">界面预览</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center mb-20">
+                <div class="fade-in">
+                    <h3 class="text-2xl font-semibold mb-4">现代化界面设计</h3>
+                    <p class="text-dark-700 mb-6">
+                        采用 Fluent Design 风格，打造类似 Windows 11 的原生体验。多页面导航、卡片式布局、实时反馈，让操作更加直观高效。
+                    </p>
+                    <ul class="space-y-3">
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-primary-500 mr-3"></i>
+                            <span>响应式设计，适应不同窗口尺寸</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-primary-500 mr-3"></i>
+                            <span>流畅动画，平滑的界面过渡</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-primary-500 mr-3"></i>
+                            <span>信息提示，优雅的错误/警告/成功提示</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="fade-in" style="animation-delay: 0.3s;">
+                    <img src="https://p26-flow-imagex-download-sign.byteimg.com/tos-cn-i-a9rns2rl98/3368069704a54bad8ba273ced55776a5.jpg~tplv-a9rns2rl98-24:720:720.image?lk3s=8e244e95&rcl=2026030514145241F5D76E48DFF888EEC3&rrcfp=8a172a1a&x-expires=1773296093&x-signature=Gco9Tk06eo7jkDBl15LJtT78iKI%3D" 
+                         alt="PSD Batch Processor 主页界面" 
+                         class="screenshot w-full">
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center mb-20">
+                <div class="order-2 md:order-1 fade-in">
+                    <img src="https://p3-flow-imagex-download-sign.byteimg.com/tos-cn-i-a9rns2rl98/d6364354e9294b188bfe37c68da61069.jpg~tplv-a9rns2rl98-24:720:720.image?lk3s=8e244e95&rcl=2026030514145241F5D76E48DFF888EEC3&rrcfp=8a172a1a&x-expires=1773296093&x-signature=5vuM%2FtzzTOQdDkWrgfBhgdbK9NI%3D" 
+                         alt="PSD Batch Processor 设置界面" 
+                         class="screenshot w-full">
+                </div>
+                <div class="order-1 md:order-2 fade-in" style="animation-delay: 0.3s;">
+                    <h3 class="text-2xl font-semibold mb-4">灵活的设置选项</h3>
+                    <p class="text-dark-700 mb-6">
+                        轻松配置 Photoshop 路径、脚本目录、备份位置等参数。支持主题切换，满足不同用户的个性化需求。
+                    </p>
+                    <ul class="space-y-3">
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-primary-500 mr-3"></i>
+                            <span>Photoshop 路径自动检测与手动设置</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-primary-500 mr-3"></i>
+                            <span>脚本目录自定义，支持子目录扫描</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-primary-500 mr-3"></i>
+                            <span>深色/浅色主题一键切换</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                <div class="fade-in">
+                    <h3 class="text-2xl font-semibold mb-4">实时日志监控</h3>
+                    <p class="text-dark-700 mb-6">
+                        详细的处理日志，实时显示每个文件的处理状态。支持日志保存和清空功能，便于追踪和分析。
+                    </p>
+                    <ul class="space-y-3">
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-primary-500 mr-3"></i>
+                            <span>实时日志更新，自动滚动</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-primary-500 mr-3"></i>
+                            <span>日志级别标识（INFO、SUCCESS、WARNING、ERROR）</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-check text-primary-500 mr-3"></i>
+                            <span>一键保存日志到文件</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="fade-in" style="animation-delay: 0.3s;">
+                    <img src="https://p26-flow-imagex-download-sign.byteimg.com/tos-cn-i-a9rns2rl98/2ae7782caad549d2b3f146d226d3a399.jpg~tplv-a9rns2rl98-24:720:720.image?lk3s=8e244e95&rcl=2026030514145241F5D76E48DFF888EEC3&rrcfp=8a172a1a&x-expires=1773296093&x-signature=W00VfqP581ZCwEmeYnTC2JzAwMA%3D" 
+                         alt="PSD Batch Processor 日志界面" 
+                         class="screenshot w-full">
+                </div>
+            </div>
+            
+
+        </div>
+    </section>
+
+    <!-- 预设脚本 -->
+    <section id="scripts" class="py-20">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl md:text-4xl font-bold text-center mb-16 section-title mx-auto">预设脚本</h2>
+            
+            <div class="mb-12 text-center fade-in">
+                <p class="text-lg text-dark-700 max-w-3xl mx-auto">
+                    PSD Batch Processor 内置多种实用脚本，帮助您快速完成常见的 PSD 处理任务。您也可以根据需要创建和添加自定义脚本。
+                </p>
+            </div>
+            
+            <!-- 脚本分类标签 -->
+            <div class="flex flex-wrap justify-center gap-4 mb-12 fade-in" style="animation-delay: 0.2s;">
+                <button class="script-filter-btn active px-6 py-2 rounded-full bg-primary-500 text-white font-medium transition-all duration-300 hover:bg-primary-600" data-filter="all">
+                    全部脚本
+                </button>
+                <button class="script-filter-btn px-6 py-2 rounded-full bg-dark-300 text-dark-700 font-medium transition-all duration-300 hover:bg-primary-500 hover:text-white" data-filter="export">
+                    导出类
+                </button>
+                <button class="script-filter-btn px-6 py-2 rounded-full bg-dark-300 text-dark-700 font-medium transition-all duration-300 hover:bg-primary-500 hover:text-white" data-filter="resize">
+                    调整类
+                </button>
+                <button class="script-filter-btn px-6 py-2 rounded-full bg-dark-300 text-dark-700 font-medium transition-all duration-300 hover:bg-primary-500 hover:text-white" data-filter="effect">
+                    效果类
+                </button>
+                <button class="script-filter-btn px-6 py-2 rounded-full bg-dark-300 text-dark-700 font-medium transition-all duration-300 hover:bg-primary-500 hover:text-white" data-filter="utility">
+                    工具类
+                </button>
+            </div>
+            
+            <!-- 脚本搜索 -->
+            <div class="max-w-md mx-auto mb-12 fade-in" style="animation-delay: 0.3s;">
+                <div class="relative">
+                    <input type="text" id="script-search" placeholder="搜索脚本..." class="w-full px-5 py-3 bg-dark-300 border border-dark-400 rounded-lg focus:outline-none focus:border-primary-500 text-white">
+                    <button class="absolute right-3 top-1/2 transform -translate-y-1/2 text-dark-700 hover:text-primary-500">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 脚本卡片网格 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="scripts-container">
+                <!-- 导出类脚本 -->
+                <div class="card p-6 script-card fade-in" data-category="export" data-name="导出为PNG">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="text-primary-500 text-2xl">
+                            <i class="fas fa-file-export"></i>
+                        </div>
+                        <span class="bg-primary-900 text-primary-300 px-3 py-1 rounded-full text-xs font-medium">导出类</span>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">导出为PNG</h3>
+                    <p class="text-dark-700 mb-4">
+                        将 PSD 文件导出为高质量 PNG 图片，支持透明背景。
+                    </p>
+                    <div class="bg-dark-300 p-4 rounded-lg mb-4">
+                        <h4 class="font-medium mb-2 text-sm text-dark-600">示例代码</h4>
+                        <pre class="text-xs text-dark-700 overflow-x-auto"><code>function exportToPNG() {
+    var doc = app.activeDocument;
+    var exportOptions = new ExportOptionsPNG24();
+    exportOptions.transparency = true;
+    exportOptions.interlaced = false;
+    
+    var file = new File(doc.path + "/" + doc.name.replace(/\.psd$/, ".png"));
+    doc.exportDocument(file, ExportType.PNG24, exportOptions);
+}</code></pre>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center text-sm text-dark-600">
+                            <i class="fas fa-code mr-2"></i>
+                            <span>简单</span>
+                        </div>
+                        <button class="text-primary-500 hover:text-primary-400 transition-colors" onclick="showScriptDetails('导出为PNG')">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card p-6 script-card fade-in" data-category="export" data-name="批量导出为JPG">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="text-primary-500 text-2xl">
+                            <i class="fas fa-file-image"></i>
+                        </div>
+                        <span class="bg-primary-900 text-primary-300 px-3 py-1 rounded-full text-xs font-medium">导出类</span>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">批量导出为JPG</h3>
+                    <p class="text-dark-700 mb-4">
+                        将多个 PSD 文件批量导出为 JPG 格式，可自定义质量和尺寸。
+                    </p>
+                    <div class="bg-dark-300 p-4 rounded-lg mb-4">
+                        <h4 class="font-medium mb-2 text-sm text-dark-600">示例代码</h4>
+                        <pre class="text-xs text-dark-700 overflow-x-auto"><code>function exportToJPG(quality) {
+    var doc = app.activeDocument;
+    var exportOptions = new ExportOptionsSaveForWeb();
+    exportOptions.format = SaveDocumentType.JPEG;
+    exportOptions.quality = quality || 80;
+    
+    var file = new File(doc.path + "/" + doc.name.replace(/\.psd$/, ".jpg"));
+    doc.exportDocument(file, ExportType.SAVEFORWEB, exportOptions);
+}</code></pre>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center text-sm text-dark-600">
+                            <i class="fas fa-code mr-2"></i>
+                            <span>简单</span>
+                        </div>
+                        <button class="text-primary-500 hover:text-primary-400 transition-colors" onclick="showScriptDetails('批量导出为JPG')">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card p-6 script-card fade-in" data-category="export" data-name="导出为WebP">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="text-primary-500 text-2xl">
+                            <i class="fas fa-globe"></i>
+                        </div>
+                        <span class="bg-primary-900 text-primary-300 px-3 py-1 rounded-full text-xs font-medium">导出类</span>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">导出为WebP</h3>
+                    <p class="text-dark-700 mb-4">
+                        将 PSD 文件导出为现代 WebP 格式，提供更好的压缩率和图像质量。
+                    </p>
+                    <div class="bg-dark-300 p-4 rounded-lg mb-4">
+                        <h4 class="font-medium mb-2 text-sm text-dark-600">示例代码</h4>
+                        <pre class="text-xs text-dark-700 overflow-x-auto"><code>function exportToWebP(quality) {
+    var doc = app.activeDocument;
+    var exportOptions = new ExportOptionsSaveForWeb();
+    exportOptions.format = SaveDocumentType.WEBP;
+    exportOptions.quality = quality || 85;
+    
+    var file = new File(doc.path + "/" + doc.name.replace(/\.psd$/, ".webp"));
+    doc.exportDocument(file, ExportType.SAVEFORWEB, exportOptions);
+}</code></pre>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center text-sm text-dark-600">
+                            <i class="fas fa-code mr-2"></i>
+                            <span>中等</span>
+                        </div>
+                        <button class="text-primary-500 hover:text-primary-400 transition-colors" onclick="showScriptDetails('导出为WebP')">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 调整类脚本 -->
+                <div class="card p-6 script-card fade-in" data-category="resize" data-name="调整图像大小">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="text-primary-500 text-2xl">
+                            <i class="fas fa-expand-arrows-alt"></i>
+                        </div>
+                        <span class="bg-blue-900 text-blue-300 px-3 py-1 rounded-full text-xs font-medium">调整类</span>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">调整图像大小</h3>
+                    <p class="text-dark-700 mb-4">
+                        按比例调整 PSD 文件的尺寸，可指定宽度或高度，保持原始比例。
+                    </p>
+                    <div class="bg-dark-300 p-4 rounded-lg mb-4">
+                        <h4 class="font-medium mb-2 text-sm text-dark-600">示例代码</h4>
+                        <pre class="text-xs text-dark-700 overflow-x-auto"><code>function resizeImage(newWidth) {
+    var doc = app.activeDocument;
+    var originalWidth = doc.width;
+    var originalHeight = doc.height;
+    var ratio = originalHeight / originalWidth;
+    
+    doc.resizeImage(
+        UnitValue(newWidth, "px"),
+        UnitValue(newWidth * ratio, "px"),
+        doc.resolution,
+        ResampleMethod.BICUBIC
+    );
+}</code></pre>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center text-sm text-dark-600">
+                            <i class="fas fa-code mr-2"></i>
+                            <span>简单</span>
+                        </div>
+                        <button class="text-primary-500 hover:text-primary-400 transition-colors" onclick="showScriptDetails('调整图像大小')">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card p-6 script-card fade-in" data-category="resize" data-name="裁剪图像">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="text-primary-500 text-2xl">
+                            <i class="fas fa-crop-alt"></i>
+                        </div>
+                        <span class="bg-blue-900 text-blue-300 px-3 py-1 rounded-full text-xs font-medium">调整类</span>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">裁剪图像</h3>
+                    <p class="text-dark-700 mb-4">
+                        根据指定的尺寸裁剪 PSD 文件，可设置裁剪区域的位置和大小。
+                    </p>
+                    <div class="bg-dark-300 p-4 rounded-lg mb-4">
+                        <h4 class="font-medium mb-2 text-sm text-dark-600">示例代码</h4>
+                        <pre class="text-xs text-dark-700 overflow-x-auto"><code>function cropImage(left, top, width, height) {
+    var doc = app.activeDocument;
+    doc.crop(
+        Array(
+            UnitValue(top, "px"),
+            UnitValue(left + width, "px"),
+            UnitValue(top + height, "px"),
+            UnitValue(left, "px")
+        )
+    );
+}</code></pre>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center text-sm text-dark-600">
+                            <i class="fas fa-code mr-2"></i>
+                            <span>中等</span>
+                        </div>
+                        <button class="text-primary-500 hover:text-primary-400 transition-colors" onclick="showScriptDetails('裁剪图像')">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 效果类脚本 -->
+                <div class="card p-6 script-card fade-in" data-category="effect" data-name="添加水印">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="text-primary-500 text-2xl">
+                            <i class="fas fa-stamp"></i>
+                        </div>
+                        <span class="bg-purple-900 text-purple-300 px-3 py-1 rounded-full text-xs font-medium">效果类</span>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">添加水印</h3>
+                    <p class="text-dark-700 mb-4">
+                        为 PSD 文件添加文本或图像水印，可自定义位置、透明度和大小。
+                    </p>
+                    <div class="bg-dark-300 p-4 rounded-lg mb-4">
+                        <h4 class="font-medium mb-2 text-sm text-dark-600">示例代码</h4>
+                        <pre class="text-xs text-dark-700 overflow-x-auto"><code>function addWatermark(text) {
+    var doc = app.activeDocument;
+    var artLayer = doc.artLayers.add();
+    artLayer.kind = LayerKind.TEXT;
+    
+    var textItem = artLayer.textItem;
+    textItem.contents = text;
+    textItem.position = [doc.width / 2, doc.height / 2];
+    textItem.size = 24;
+    textItem.color.rgb.red = 255;
+    textItem.color.rgb.green = 255;
+    textItem.color.rgb.blue = 255;
+    
+    // 设置透明度
+    artLayer.opacity = 50;
+}</code></pre>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center text-sm text-dark-600">
+                            <i class="fas fa-code mr-2"></i>
+                            <span>中等</span>
+                        </div>
+                        <button class="text-primary-500 hover:text-primary-400 transition-colors" onclick="showScriptDetails('添加水印')">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card p-6 script-card fade-in" data-category="effect" data-name="应用滤镜效果">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="text-primary-500 text-2xl">
+                            <i class="fas fa-magic"></i>
+                        </div>
+                        <span class="bg-purple-900 text-purple-300 px-3 py-1 rounded-full text-xs font-medium">效果类</span>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">应用滤镜效果</h3>
+                    <p class="text-dark-700 mb-4">
+                        为 PSD 文件应用各种滤镜效果，如模糊、锐化、噪点等。
+                    </p>
+                    <div class="bg-dark-300 p-4 rounded-lg mb-4">
+                        <h4 class="font-medium mb-2 text-sm text-dark-600">示例代码</h4>
+                        <pre class="text-xs text-dark-700 overflow-x-auto"><code>function applyFilter(filterType, amount) {
+    var doc = app.activeDocument;
+    var layer = doc.activeLayer;
+    
+    // 复制图层以应用滤镜
+    layer.duplicate();
+    doc.activeLayer = layer;
+    
+    switch(filterType) {
+        case "blur":
+            app.executeAction(charIDToTypeID('Gblu'), 
+                new ActionDescriptor().putUnitDouble(charIDToTypeID('Rds '), charIDToTypeID('#Pxl'), amount), 
+                DialogModes.NO);
+            break;
+        case "sharpen":
+            app.executeAction(charIDToTypeID('DrSh'), 
+                new ActionDescriptor().putUnitDouble(charIDToTypeID('Amnt'), charIDToTypeID('#Prc'), amount), 
+                DialogModes.NO);
+            break;
+    }
+}</code></pre>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center text-sm text-dark-600">
+                            <i class="fas fa-code mr-2"></i>
+                            <span>高级</span>
+                        </div>
+                        <button class="text-primary-500 hover:text-primary-400 transition-colors" onclick="showScriptDetails('应用滤镜效果')">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 工具类脚本 -->
+                <div class="card p-6 script-card fade-in" data-category="utility" data-name="合并所有图层">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="text-primary-500 text-2xl">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                        <span class="bg-green-900 text-green-300 px-3 py-1 rounded-full text-xs font-medium">工具类</span>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">合并所有图层</h3>
+                    <p class="text-dark-700 mb-4">
+                        将 PSD 文件中的所有图层合并为一个图层，简化文件结构。
+                    </p>
+                    <div class="bg-dark-300 p-4 rounded-lg mb-4">
+                        <h4 class="font-medium mb-2 text-sm text-dark-600">示例代码</h4>
+                        <pre class="text-xs text-dark-700 overflow-x-auto"><code>function mergeAllLayers() {
+    var doc = app.activeDocument;
+    
+    // 确保有图层可合并
+    if (doc.layers.length > 1) {
+        // 选择所有图层
+        doc.selection.selectAll();
+        
+        // 合并选中的图层
+        doc.mergeVisibleLayers();
+    }
+}</code></pre>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center text-sm text-dark-600">
+                            <i class="fas fa-code mr-2"></i>
+                            <span>简单</span>
+                        </div>
+                        <button class="text-primary-500 hover:text-primary-400 transition-colors" onclick="showScriptDetails('合并所有图层')">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card p-6 script-card fade-in" data-category="utility" data-name="批量重命名图层">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="text-primary-500 text-2xl">
+                            <i class="fas fa-edit"></i>
+                        </div>
+                        <span class="bg-green-900 text-green-300 px-3 py-1 rounded-full text-xs font-medium">工具类</span>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">批量重命名图层</h3>
+                    <p class="text-dark-700 mb-4">
+                        按照指定的规则批量重命名 PSD 文件中的图层，提高组织效率。
+                    </p>
+                    <div class="bg-dark-300 p-4 rounded-lg mb-4">
+                        <h4 class="font-medium mb-2 text-sm text-dark-600">示例代码</h4>
+                        <pre class="text-xs text-dark-700 overflow-x-auto"><code>function renameLayers(prefix) {
+    var doc = app.activeDocument;
+    var layers = doc.layers;
+    
+    for (var i = 0; i < layers.length; i++) {
+        layers[i].name = prefix + "_" + (i + 1);
+    }
+}</code></pre>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center text-sm text-dark-600">
+                            <i class="fas fa-code mr-2"></i>
+                            <span>简单</span>
+                        </div>
+                        <button class="text-primary-500 hover:text-primary-400 transition-colors" onclick="showScriptDetails('批量重命名图层')">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card p-6 script-card fade-in" data-category="utility" data-name="导出图层为文件">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="text-primary-500 text-2xl">
+                            <i class="fas fa-file-export"></i>
+                        </div>
+                        <span class="bg-green-900 text-green-300 px-3 py-1 rounded-full text-xs font-medium">工具类</span>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">导出图层为文件</h3>
+                    <p class="text-dark-700 mb-4">
+                        将 PSD 文件中的每个图层单独导出为文件，便于进一步处理。
+                    </p>
+                    <div class="bg-dark-300 p-4 rounded-lg mb-4">
+                        <h4 class="font-medium mb-2 text-sm text-dark-600">示例代码</h4>
+                        <pre class="text-xs text-dark-700 overflow-x-auto"><code>function exportLayersToFiles() {
+    var doc = app.activeDocument;
+    var layers = doc.layers;
+    var docPath = doc.path;
+    
+    // 保存当前可见性状态
+    var visibilityStates = [];
+    for (var i = 0; i < layers.length; i++) {
+        visibilityStates.push(layers[i].visible);
+        layers[i].visible = false;
+    }
+    
+    // 导出每个图层
+    for (var i = 0; i < layers.length; i++) {
+        layers[i].visible = true;
+        
+        var exportOptions = new ExportOptionsPNG24();
+        exportOptions.transparency = true;
+        
+        var file = new File(docPath + "/" + layers[i].name + ".png");
+        doc.exportDocument(file, ExportType.PNG24, exportOptions);
+        
+        layers[i].visible = false;
+    }
+    
+    // 恢复原始可见性状态
+    for (var i = 0; i < layers.length; i++) {
+        layers[i].visible = visibilityStates[i];
+    }
+}</code></pre>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center text-sm text-dark-600">
+                            <i class="fas fa-code mr-2"></i>
+                            <span>中等</span>
+                        </div>
+                        <button class="text-primary-500 hover:text-primary-400 transition-colors" onclick="showScriptDetails('导出图层为文件')">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 脚本详情模态框 -->
+            <div id="script-modal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden">
+                <div class="bg-dark-100 rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 mx-4">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 id="modal-title" class="text-2xl font-bold">脚本详情</h3>
+                        <button onclick="closeScriptModal()" class="text-dark-700 hover:text-white">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    <div id="modal-content">
+                        <!-- 动态填充内容 -->
+                    </div>
+                    <div class="mt-6 flex justify-end">
+                        <button onclick="closeScriptModal()" class="btn-secondary">关闭</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 加载更多按钮 -->
+            <div class="mt-12 text-center fade-in" style="animation-delay: 0.5s;">
+                <button id="load-more-scripts" class="btn-secondary">
+                    <i class="fas fa-sync-alt mr-2"></i>加载更多脚本
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- 使用指南 -->
+    <section id="guide" class="py-20">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl md:text-4xl font-bold text-center mb-16 section-title mx-auto">使用指南</h2>
+            
+            <div class="max-w-3xl mx-auto">
+                <div class="space-y-6">
+                    <!-- 步骤 1 -->
+                    <div class="card p-6 step-card fade-in" style="animation-delay: 0.1s;">
+                        <div class="step-number">1</div>
+                        <h3 class="text-xl font-semibold mb-3">设置 Photoshop 路径</h3>
+                        <p class="text-dark-700 mb-4">
+                            首次启动时，需要设置 Photoshop 的安装路径。点击"浏览"按钮，选择 Photoshop.exe 文件。
+                        </p>
+                        <div class="bg-dark-200 p-3 rounded-md text-sm text-dark-700">
+                            <code>通常路径: C:\Program Files\Adobe\Adobe Photoshop 2025\Photoshop.exe</code>
+                        </div>
+                    </div>
+                    
+                    <!-- 步骤 2 -->
+                    <div class="card p-6 step-card fade-in" style="animation-delay: 0.2s;">
+                        <div class="step-number">2</div>
+                        <h3 class="text-xl font-semibold mb-3">刷新脚本列表</h3>
+                        <p class="text-dark-700 mb-4">
+                            点击"刷新"按钮，系统会自动扫描 scripts/ 目录及其子目录中的所有 JSX 脚本。
+                        </p>
+                        <div class="bg-dark-200 p-3 rounded-md text-sm text-dark-700">
+                            <code>支持子目录脚本，显示格式: 子目录/脚本名.jsx</code>
+                        </div>
+                    </div>
+                    
+                    <!-- 步骤 3 -->
+                    <div class="card p-6 step-card fade-in" style="animation-delay: 0.3s;">
+                        <div class="step-number">3</div>
+                        <h3 class="text-xl font-semibold mb-3">添加文件</h3>
+                        <p class="text-dark-700 mb-4">
+                            点击"添加文件"选择单个或多个 PSD 文件，或点击"添加文件夹"批量添加整个目录中的 PSD 文件。
+                        </p>
+                        <div class="flex flex-wrap gap-2 mt-3">
+                            <span class="bg-dark-200 text-dark-700 px-3 py-1 rounded-full text-sm">支持多选</span>
+                            <span class="bg-dark-200 text-dark-700 px-3 py-1 rounded-full text-sm">递归扫描</span>
+                            <span class="bg-dark-200 text-dark-700 px-3 py-1 rounded-full text-sm">实时状态</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 步骤 4 -->
+                    <div class="card p-6 step-card fade-in" style="animation-delay: 0.4s;">
+                        <div class="step-number">4</div>
+                        <h3 class="text-xl font-semibold mb-3">选择脚本</h3>
+                        <p class="text-dark-700 mb-4">
+                            从下拉框中选择要执行的 JSX 脚本。脚本将应用于所有添加的 PSD 文件。
+                        </p>
+                        <div class="bg-dark-200 p-3 rounded-md text-sm text-dark-700">
+                            <code>支持自定义脚本，可在 scripts/ 目录下组织</code>
+                        </div>
+                    </div>
+                    
+                    <!-- 步骤 5 -->
+                    <div class="card p-6 step-card fade-in" style="animation-delay: 0.5s;">
+                        <div class="step-number">5</div>
+                        <h3 class="text-xl font-semibold mb-3">开始处理</h3>
+                        <p class="text-dark-700 mb-4">
+                            点击"开始处理"按钮，系统将自动打开 Photoshop 并批量执行脚本。处理完成后，可以点击"打开输出文件夹"查看结果。
+                        </p>
+                        <div class="flex flex-wrap gap-2 mt-3">
+                            <span class="bg-primary-900 text-primary-300 px-3 py-1 rounded-full text-sm">自动备份</span>
+                            <span class="bg-primary-900 text-primary-300 px-3 py-1 rounded-full text-sm">实时进度</span>
+                            <span class="bg-primary-900 text-primary-300 px-3 py-1 rounded-full text-sm">错误提示</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-16 text-center">
+                <a href="#download" class="btn-primary inline-block">
+                    <i class="fas fa-download mr-2"></i>立即下载并开始使用
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 下载区域 -->
+    <section id="download" class="py-20 bg-dark-100">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl md:text-4xl font-bold text-center mb-16 section-title mx-auto">立即下载</h2>
+            
+            <div class="max-w-4xl mx-auto">
+                <div class="download-card p-8 rounded-xl mb-12 fade-in">
+                    <div class="flex flex-col md:flex-row items-center justify-between">
+                        <div class="mb-6 md:mb-0">
+                            <h3 class="text-2xl font-semibold mb-2">PSD Batch Processor v1.0.0</h3>
+                            <p class="text-dark-700 mb-4">
+                                最新稳定版本，支持 Windows 10/11 系统。
+                            </p>
+                            <div class="flex flex-wrap gap-3">
+                                <span class="version-badge">
+                                    <i class="fas fa-check-circle mr-1"></i>稳定版
+                                </span>
+                                <span class="version-badge">
+                                    <i class="fas fa-calendar-alt mr-1"></i>2026-01-24
+                                </span>
+                                <span class="version-badge">
+                                    <i class="fas fa-download mr-1"></i>5.2k
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <a href="https://github.com/yancongya/PSD-Batch-Processor/releases" target="_blank" class="download-btn px-6 py-3 rounded-lg font-semibold flex items-center justify-center">
+                                <i class="fas fa-download mr-2"></i>
+                                完整版本
+                            </a>
+                            <a href="https://github.com/yancongya/PSD-Batch-Processor" target="_blank" class="btn-secondary px-6 py-3 rounded-lg font-semibold flex items-center justify-center">
+                                <i class="fab fa-github mr-2"></i>
+                                GitHub
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- 版本 1 -->
+                    <div class="card p-6 fade-in">
+                        <div class="text-primary-500 text-2xl mb-4">
+                            <i class="fas fa-window-maximize"></i>
+                        </div>
+                        <h4 class="text-lg font-semibold mb-2">Windowed 版本</h4>
+                        <p class="text-dark-700 text-sm mb-4">
+                            标准窗口版本，适合大多数用户。
+                        </p>
+                        <a href="https://github.com/yancongya/PSD-Batch-Processor/releases" target="_blank" class="text-primary-500 font-medium text-sm flex items-center">
+                            下载
+                            <i class="fas fa-arrow-right ml-2"></i>
+                        </a>
+                    </div>
+                    
+                    <!-- 版本 2 -->
+                    <div class="card p-6 fade-in" style="animation-delay: 0.2s;">
+                        <div class="text-primary-500 text-2xl mb-4">
+                            <i class="fas fa-terminal"></i>
+                        </div>
+                        <h4 class="text-lg font-semibold mb-2">Console 版本</h4>
+                        <p class="text-dark-700 text-sm mb-4">
+                            带控制台窗口，显示详细运行信息。
+                        </p>
+                        <a href="https://github.com/yancongya/PSD-Batch-Processor/releases" target="_blank" class="text-primary-500 font-medium text-sm flex items-center">
+                            下载
+                            <i class="fas fa-arrow-right ml-2"></i>
+                        </a>
+                    </div>
+                    
+                    <!-- 版本 3 -->
+                    <div class="card p-6 fade-in" style="animation-delay: 0.4s;">
+                        <div class="text-primary-500 text-2xl mb-4">
+                            <i class="fas fa-file-archive"></i>
+                        </div>
+                        <h4 class="text-lg font-semibold mb-2">OneFile 版本</h4>
+                        <p class="text-dark-700 text-sm mb-4">
+                            单文件版本，便于携带和分发。
+                        </p>
+                        <a href="https://github.com/yancongya/PSD-Batch-Processor/releases" target="_blank" class="text-primary-500 font-medium text-sm flex items-center">
+                            下载
+                            <i class="fas fa-arrow-right ml-2"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="mt-12 text-center text-dark-700 text-sm">
+                    <p>
+                        <i class="fas fa-info-circle mr-1"></i>
+                        所有版本均已通过安全检测，无需安装，解压即可使用。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 常见问题 -->
+    <section id="faq" class="py-20">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl md:text-4xl font-bold text-center mb-16 section-title mx-auto">常见问题</h2>
+            
+            <div class="max-w-3xl mx-auto space-y-6">
+                <!-- 问题 1 -->
+                <div class="card p-6 fade-in">
+                    <h3 class="text-xl font-semibold mb-3">无法导入 PyQt-Fluent-Widgets</h3>
+                    <p class="text-dark-700">
+                        这通常是由于依赖包安装不完整导致的。请尝试以下命令重新安装：
+                    </p>
+                    <div class="bg-dark-200 p-4 rounded-md mt-4 text-sm text-dark-700 font-mono">
+                        pip uninstall PyQt-Fluent-Widgets PyQt5<br>
+                        pip install PyQt-Fluent-Widgets PyQt5
+                    </div>
+                </div>
+                
+                <!-- 问题 2 -->
+                <div class="card p-6 fade-in" style="animation-delay: 0.2s;">
+                    <h3 class="text-xl font-semibold mb-3">Photoshop 无法启动</h3>
+                    <p class="text-dark-700">
+                        请检查以下几点：
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 mt-4 text-dark-700">
+                        <li>Photoshop 路径设置是否正确</li>
+                        <li>确保 Photoshop 已正确安装</li>
+                        <li>尝试以管理员权限运行应用</li>
+                        <li>检查 Photoshop 是否支持 COM 自动化（通常 CS6 及以上版本都支持）</li>
+                    </ul>
+                </div>
+                
+                <!-- 问题 3 -->
+                <div class="card p-6 fade-in" style="animation-delay: 0.4s;">
+                    <h3 class="text-xl font-semibold mb-3">脚本无法找到</h3>
+                    <p class="text-dark-700">
+                        如果系统无法找到您的脚本，请尝试：
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 mt-4 text-dark-700">
+                        <li>点击"刷新"按钮重新扫描脚本目录</li>
+                        <li>检查脚本目录设置是否正确</li>
+                        <li>确保脚本扩展名为 <code class="bg-dark-200 px-2 py-1 rounded">.jsx</code></li>
+                        <li>检查脚本文件是否存在且可读</li>
+                    </ul>
+                </div>
+                
+                <!-- 问题 4 -->
+                <div class="card p-6 fade-in" style="animation-delay: 0.6s;">
+                    <h3 class="text-xl font-semibold mb-3">处理速度慢</h3>
+                    <p class="text-dark-700">
+                        处理速度受多种因素影响，您可以：
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 mt-4 text-dark-700">
+                        <li>根据 CPU 核心数调整并发数设置</li>
+                        <li>关闭其他占用系统资源的程序</li>
+                        <li>确保 Photoshop 响应正常</li>
+                        <li>对于大型 PSD 文件，建议降低并发数</li>
+                    </ul>
+                </div>
+                
+                <!-- 问题 5 -->
+                <div class="card p-6 fade-in" style="animation-delay: 0.8s;">
+                    <h3 class="text-xl font-semibold mb-3">界面显示异常</h3>
+                    <p class="text-dark-700">
+                        如遇界面显示问题，请检查：
+                    </p>
+                    <div class="bg-dark-200 p-4 rounded-md mt-4 text-sm text-dark-700 font-mono">
+                        # 检查 Python 版本<br>
+                        python --version   # 需要 3.8+<br><br>
+                        # 重新安装依赖<br>
+                        pip install --upgrade PyQt5 PyQt-Fluent-Widgets
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-12 text-center">
+                <p class="text-dark-700 mb-4">
+                    还有其他问题？请查看完整文档或提交 Issue
+                </p>
+                <div class="flex flex-wrap justify-center gap-4">
+                    <a href="https://github.com/yancongya/PSD-Batch-Processor/blob/master/docs/guides/START_HERE.txt" target="_blank" class="btn-secondary">
+                        <i class="fas fa-book mr-2"></i>使用文档
+                    </a>
+                    <a href="https://github.com/yancongya/PSD-Batch-Processor/issues" target="_blank" class="btn-secondary">
+                        <i class="fas fa-question-circle mr-2"></i>提交 Issue
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="bg-dark-100 py-12 border-t border-dark-300">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <div class="text-primary-500 text-2xl font-bold mr-2">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                        <span class="text-xl font-bold text-white">PSD Batch Processor</span>
+                    </div>
+                    <p class="text-dark-700 mb-4">
+                        现代化、美观的 PSD 批量处理器，提升您的设计工作流程效率。
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="https://github.com/yancongya/PSD-Batch-Processor" target="_blank" class="social-icon">
+                            <i class="fab fa-github"></i>
+                        </a>
+                        <a href="#" class="social-icon">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="social-icon">
+                            <i class="fab fa-linkedin"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">快速链接</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#features" class="footer-link">功能特性</a></li>
+                        <li><a href="#screenshots" class="footer-link">界面预览</a></li>
+                        <li><a href="#guide" class="footer-link">使用指南</a></li>
+                        <li><a href="#download" class="footer-link">下载</a></li>
+                        <li><a href="#faq" class="footer-link">常见问题</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">资源</h4>
+                    <ul class="space-y-2">
+                        <li><a href="https://github.com/yancongya/PSD-Batch-Processor/blob/master/docs/guides/START_HERE.txt" target="_blank" class="footer-link">快速开始</a></li>
+                        <li><a href="https://github.com/yancongya/PSD-Batch-Processor/blob/master/docs/guides/QUICK_REFERENCE.txt" target="_blank" class="footer-link">参考手册</a></li>
+                        <li><a href="https://github.com/yancongya/PSD-Batch-Processor/blob/master/docs/PACKAGING_GUIDE.md" target="_blank" class="footer-link">打包指南</a></li>
+                        <li><a href="https://github.com/yancongya/PSD-Batch-Processor/releases" target="_blank" class="footer-link">版本历史</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">联系我们</h4>
+                    <ul class="space-y-2">
+                        <li class="flex items-center">
+                            <i class="fas fa-envelope text-primary-500 mr-2"></i>
+                            <a href="mailto:yancongya@example.com" class="footer-link">yancongya@example.com</a>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fab fa-github text-primary-500 mr-2"></i>
+                            <a href="https://github.com/yancongya" target="_blank" class="footer-link">github.com/yancongya</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-dark-300 pt-8 text-center">
+                <p class="text-dark-700">
+                    &copy; 2026 PSD Batch Processor. 基于 <a href="https://github.com/yancongya/PSD-Batch-Processor/blob/master/LICENSE" target="_blank" class="text-primary-500">MIT License</a> 开源。
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 返回顶部按钮 -->
+    <button id="back-to-top" class="fixed bottom-8 right-8 bg-primary-500 text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg opacity-0 invisible transition-all duration-300">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <script>
+        // 移动端菜单切换
+        document.getElementById('mobile-menu-button').addEventListener('click', function() {
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenu.classList.toggle('hidden');
+        });
+        
+        // 导航链接高亮
+        const sections = document.querySelectorAll('section');
+        const navLinks = document.querySelectorAll('.nav-link');
+        
+        window.addEventListener('scroll', () => {
+            let current = '';
+            
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (pageYOffset >= sectionTop - 200) {
+                    current = section.getAttribute('id');
+                }
+            });
+            
+            navLinks.forEach(link => {
+                link.classList.remove('active-nav');
+                if (link.getAttribute('href').substring(1) === current) {
+                    link.classList.add('active-nav');
+                }
+            });
+        });
+        
+        // 返回顶部按钮
+        const backToTopButton = document.getElementById('back-to-top');
+        
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+                backToTopButton.classList.remove('opacity-0', 'invisible');
+                backToTopButton.classList.add('opacity-100', 'visible');
+            } else {
+                backToTopButton.classList.remove('opacity-100', 'visible');
+                backToTopButton.classList.add('opacity-0', 'invisible');
+            }
+        });
+
+        // 脚本筛选功能
+        const scriptFilterBtns = document.querySelectorAll('.script-filter-btn');
+        const scriptCards = document.querySelectorAll('.script-card');
+        
+        scriptFilterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // 移除所有按钮的活跃状态
+                scriptFilterBtns.forEach(b => {
+                    b.classList.remove('active', 'bg-primary-500', 'text-white');
+                    b.classList.add('bg-dark-300', 'text-dark-700');
+                });
+                
+                // 添加当前按钮的活跃状态
+                btn.classList.add('active', 'bg-primary-500', 'text-white');
+                btn.classList.remove('bg-dark-300', 'text-dark-700');
+                
+                const filter = btn.getAttribute('data-filter');
+                
+                // 筛选脚本卡片
+                scriptCards.forEach(card => {
+                    if (filter === 'all' || card.getAttribute('data-category') === filter) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+        // 脚本搜索功能
+        const scriptSearch = document.getElementById('script-search');
+        scriptSearch.addEventListener('input', () => {
+            const searchTerm = scriptSearch.value.toLowerCase();
+            
+            scriptCards.forEach(card => {
+                const scriptName = card.getAttribute('data-name').toLowerCase();
+                const scriptDescription = card.querySelector('p').textContent.toLowerCase();
+                
+                if (scriptName.includes(searchTerm) || scriptDescription.includes(searchTerm)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+
+        // 脚本详情模态框
+        const scriptModal = document.getElementById('script-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalContent = document.getElementById('modal-content');
+
+        function showScriptDetails(scriptName) {
+            const scriptCard = document.querySelector(`[data-name="${scriptName}"]`);
+            if (!scriptCard) return;
+
+            const category = scriptCard.getAttribute('data-category');
+            const description = scriptCard.querySelector('p').textContent;
+            const codeExample = scriptCard.querySelector('code').textContent;
+            const difficulty = scriptCard.querySelector('.flex.items-center.text-sm span').textContent;
+            
+            // 设置模态框内容
+            modalTitle.textContent = scriptName;
+            
+            let categoryColor = 'primary';
+            let categoryText = '导出类';
+            
+            switch(category) {
+                case 'resize':
+                    categoryColor = 'blue';
+                    categoryText = '调整类';
+                    break;
+                case 'effect':
+                    categoryColor = 'purple';
+                    categoryText = '效果类';
+                    break;
+                case 'utility':
+                    categoryColor = 'green';
+                    categoryText = '工具类';
+                    break;
+            }
+            
+            modalContent.innerHTML = `
+                <div class="space-y-6">
+                    <div>
+                        <span class="bg-${categoryColor}-900 text-${categoryColor}-300 px-3 py-1 rounded-full text-sm font-medium">${categoryText}</span>
+                        <span class="ml-3 bg-dark-300 text-dark-700 px-3 py-1 rounded-full text-sm font-medium">
+                            <i class="fas fa-code mr-1"></i>${difficulty}
+                        </span>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-lg font-semibold mb-2">描述</h4>
+                        <p class="text-dark-700">${description}</p>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-lg font-semibold mb-2">使用说明</h4>
+                        <p class="text-dark-700 mb-4">
+                            1. 在软件主界面选择需要处理的 PSD 文件<br>
+                            2. 在脚本列表中选择 <strong>${scriptName}</strong><br>
+                            3. 根据提示设置参数（如有需要）<br>
+                            4. 点击"开始处理"按钮执行脚本
+                        </p>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-lg font-semibold mb-2">代码示例</h4>
+                        <div class="bg-dark-300 p-4 rounded-lg">
+                            <pre class="text-sm text-dark-700 overflow-x-auto"><code>${codeExample}</code></pre>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-lg font-semibold mb-2">参数说明</h4>
+                        <div class="bg-dark-300 p-4 rounded-lg">
+                            <ul class="list-disc list-inside space-y-2 text-dark-700">
+                                ${getScriptParameters(scriptName)}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // 显示模态框
+            scriptModal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // 防止背景滚动
+        }
+
+        function closeScriptModal() {
+            scriptModal.classList.add('hidden');
+            document.body.style.overflow = 'auto'; // 恢复背景滚动
+        }
+
+        // 点击模态框外部关闭
+        scriptModal.addEventListener('click', (e) => {
+            if (e.target === scriptModal) {
+                closeScriptModal();
+            }
+        });
+
+        // 获取脚本参数说明
+        function getScriptParameters(scriptName) {
+            const parameters = {
+                '导出为PNG': `
+                    <li><strong>transparency</strong> - 是否保留透明背景（布尔值）</li>
+                    <li><strong>interlaced</strong> - 是否使用隔行扫描（布尔值）</li>
+                `,
+                '批量导出为JPG': `
+                    <li><strong>quality</strong> - 导出质量（0-100）</li>
+                `,
+                '导出为WebP': `
+                    <li><strong>quality</strong> - 导出质量（0-100）</li>
+                `,
+                '调整图像大小': `
+                    <li><strong>newWidth</strong> - 新的宽度（像素）</li>
+                `,
+                '裁剪图像': `
+                    <li><strong>left</strong> - 裁剪区域左上角X坐标</li>
+                    <li><strong>top</strong> - 裁剪区域左上角Y坐标</li>
+                    <li><strong>width</strong> - 裁剪区域宽度</li>
+                    <li><strong>height</strong> - 裁剪区域高度</li>
+                `,
+                '添加水印': `
+                    <li><strong>text</strong> - 水印文本内容</li>
+                    <li><strong>position</strong> - 水印位置 [x, y]</li>
+                    <li><strong>size</strong> - 字体大小</li>
+                    <li><strong>opacity</strong> - 透明度（0-100）</li>
+                `,
+                '应用滤镜效果': `
+                    <li><strong>filterType</strong> - 滤镜类型（'blur', 'sharpen'等）</li>
+                    <li><strong>amount</strong> - 滤镜强度</li>
+                `,
+                '合并所有图层': `
+                    <li>无参数</li>
+                `,
+                '批量重命名图层': `
+                    <li><strong>prefix</strong> - 图层名称前缀</li>
+                `,
+                '导出图层为文件': `
+                    <li>无参数</li>
+                `
+            };
+            
+            return parameters[scriptName] || '<li>暂无参数说明</li>';
+        }
+
+        // 加载更多脚本按钮
+        const loadMoreBtn = document.getElementById('load-more-scripts');
+        loadMoreBtn.addEventListener('click', () => {
+            loadMoreBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>加载中...';
+            setTimeout(() => {
+                loadMoreBtn.innerHTML = '<i class="fas fa-check mr-2"></i>已加载全部脚本';
+                loadMoreBtn.disabled = true;
+                loadMoreBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            }, 1500);
+        });
+        
+        backToTopButton.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+        
+        // 滚动动画
+        function handleScrollAnimation() {
+            const elements = document.querySelectorAll('.fade-in');
+            
+            elements.forEach(element => {
+                const elementTop = element.getBoundingClientRect().top;
+                const elementVisible = 150;
+                
+                if (elementTop < window.innerHeight - elementVisible) {
+                    element.classList.add('active');
+                }
+            });
+        }
+        
+        window.addEventListener('scroll', handleScrollAnimation);
+        window.addEventListener('load', handleScrollAnimation);
+        
+        // Three.js 背景动画
+        function initThreeJsBackground() {
+            const canvas = document.getElementById('hero-canvas');
+            
+            // 创建场景
+            const scene = new THREE.Scene();
+            
+            // 创建相机
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 5;
+            
+            // 创建渲染器
+            const renderer = new THREE.WebGLRenderer({
+                canvas: canvas,
+                alpha: true,
+                antialias: true
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            
+            // 创建粒子
+            const particlesGeometry = new THREE.BufferGeometry();
+            const particlesCount = 1500;
+            
+            const posArray = new Float32Array(particlesCount * 3);
+            
+            for (let i = 0; i < particlesCount * 3; i++) {
+                posArray[i] = (Math.random() - 0.5) * 10;
+            }
+            
+            particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+            
+            // 创建材质
+            const particlesMaterial = new THREE.PointsMaterial({
+                size: 0.02,
+                color: 0x1E88E5,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            // 创建粒子系统
+            const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+            scene.add(particlesMesh);
+            
+            // 动画函数
+            function animate() {
+                requestAnimationFrame(animate);
+                
+                particlesMesh.rotation.y += 0.001;
+                particlesMesh.rotation.x += 0.0005;
+                
+                renderer.render(scene, camera);
+            }
+            
+            // 窗口大小调整
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+            
+            animate();
+        }
+        
+        // 初始化 Three.js 背景
+        if (window.THREE) {
+            initThreeJsBackground();
+        }
+        
+        // 平滑滚动
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const targetId = this.getAttribute('href');
+                if (targetId === '#') return;
+                
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    // 关闭移动端菜单
+                    document.getElementById('mobile-menu').classList.add('hidden');
+                    
+                    // 滚动到目标位置
+                    targetElement.scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
