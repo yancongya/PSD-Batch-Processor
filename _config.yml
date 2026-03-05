@@ -1,0 +1,4 @@
+# GitHub Pages 配置
+# 禁用 Jekyll 构建，直接部署静态 HTML 文件
+theme: jekyll-theme-minimal
+plugins: []
