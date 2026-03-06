@@ -1,6 +1,0 @@
-markdown: kramdown
-theme: null
-plugins: []
-include: ['index.html', 'pic/']
-exclude: []
-keep_files: ['index.html', 'pic/']
