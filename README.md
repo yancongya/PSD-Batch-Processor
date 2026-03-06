@@ -6,8 +6,11 @@
 ![PyQt5](https://img.shields.io/badge/PyQt5-5.15.0-green)
 ![Python](https://img.shields.io/badge/Python-3.8%2B-yellow)
 ![License](https://img.shields.io/badge/License-MIT-lightgrey)
+![Website](https://img.shields.io/badge/Website-Online-success)
 
 **现代化、美观的 PSD 批量处理器**
+
+🌐 [产品官网](https://yancongya.github.io/PSD-Batch-Processor/) | 📦 [下载安装](https://github.com/yancongya/PSD-Batch-Processor/releases)
 
 </div>
 
@@ -153,7 +156,7 @@ PSD Batch Processor/
 ## 🔗 产品官网
 
 访问产品官网了解更多信息和最新动态：
-https://www.doubao.com/share/code/f57b52f9b4b66c1d?is_code=1
+https://yancongya.github.io/PSD-Batch-Processor/
 
 ## 🎨 界面预览
 
@@ -464,7 +467,10 @@ pyinstaller ^
 
 ## 🔗 相关链接
 
+- **产品官网**: https://yancongya.github.io/PSD-Batch-Processor/
 - **项目主页**: [README.md](README.md)
+- **GitHub 仓库**: https://github.com/yancongya/PSD-Batch-Processor
+- **发布页面**: https://github.com/yancongya/PSD-Batch-Processor/releases
 - **打包指南**: [docs/PACKAGING_GUIDE.md](docs/PACKAGING_GUIDE.md)
 - **快速开始**: [docs/guides/START_HERE.txt](docs/guides/START_HERE.txt)
 - **参考手册**: [docs/guides/QUICK_REFERENCE.txt](docs/guides/QUICK_REFERENCE.txt)
