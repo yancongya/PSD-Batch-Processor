@@ -10,9 +10,25 @@
 
 **现代化、美观的 PSD 批量处理器**
 
+**Modern, Beautiful PSD Batch Processor**
+
 🌐 [产品官网](https://yancongya.github.io/PSD-Batch-Processor/) | 📦 [下载安装](https://github.com/yancongya/PSD-Batch-Processor/releases)
 
+🌐 [Official Website](https://yancongya.github.io/PSD-Batch-Processor/) | 📦 [Download](https://github.com/yancongya/PSD-Batch-Processor/releases)
+
 </div>
+
+---
+
+## 🌍 语言 / Language
+
+[🇨🇳 中文](#中文文档) | [🇺🇸 English](#english-documentation)
+
+---
+
+---
+
+# 中文文档
 
 ## 🎯 特点
 
@@ -35,6 +51,12 @@
 - **流畅动画**: 平滑的界面过渡
 - **信息提示**: 优雅的错误/警告/成功提示
 - **快捷操作**: 一键打开输出文件夹
+
+## 🌐 产品官网
+
+**主要官网**：https://yancongya.github.io/PSD-Batch-Processor/
+
+**备用地址**：https://www.doubao.com/share/code/f57b52f9b4b66c1d?is_code=1
 
 ## 🚀 快速开始
 
@@ -505,3 +527,433 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 **版本**: 1.0.0
 **更新日期**: 2026-01-24
 **状态**: ✅ 生产就绪
+
+---
+
+# English Documentation
+
+## 🎯 Features
+
+### ✨ Interface Features
+- **Fluent Design Style**: Native Windows 11 style interface
+- **Multi-page Navigation**: Three independent pages - Home, Settings, Logs
+- **Card-based Layout**: Clear functional zones
+- **Real-time Feedback**: Progress bars, logs, and information prompts
+- **Theme Switching**: Dark/Light theme support
+
+### 🚀 Functional Features
+- **Batch Processing**: Support for concurrent multi-file processing
+- **Script Management**: Recursive scanning of JSX scripts in subdirectories
+- **File Management**: Support for adding files/folders with real-time status display
+- **Backup Mechanism**: Automatic creation of timestamped backup folders
+- **Complete Logging**: Real-time log viewing and saving
+
+### 🎨 User Experience
+- **Responsive Design**: Adapts to different window sizes
+- **Smooth Animations**: Smooth interface transitions
+- **Information Prompts**: Elegant error/warning/success prompts
+- **Quick Operations**: One-click to open output folder
+
+## 🌐 Official Website
+
+**Primary Website**: https://yancongya.github.io/PSD-Batch-Processor/
+
+**Backup Address**: https://www.doubao.com/share/code/f57b52f9b4b66c1d?is_code=1
+
+## 🚀 Quick Start
+
+### Method 1: Download Pre-built Version (Recommended)
+
+Download the pre-built executable from GitHub Releases:
+
+1. **Visit Release Page**:
+   https://github.com/yancongya/PSD-Batch-Processor/releases
+
+2. **Download Latest Version**:
+   - `PSDBatchProcessor-vX.X.X.zip`
+   - Includes three versions: Windowed, Console, OneFile
+
+3. **Extract and Run**:
+   - Windowed version: Double-click `PSDBatchProcessor-Windowed.exe`
+   - Console version: Double-click `PSDBatchProcessor-Console.exe`
+   - OneFile version: Double-click `PSDBatchProcessor-OneFile.exe`
+
+### Method 2: Run from Source
+
+#### 1. Install Dependencies
+
+#### Method A: Using Installation Script (Recommended)
+```bash
+python tools\install_fluent.py
+```
+
+#### Method B: Manual Installation
+```bash
+pip install PyQt5 PyQt-Fluent-Widgets pywin32 Pillow
+```
+
+### 2. Launch Application
+
+#### Method A: Using Launch Script (Recommended)
+```bash
+python tools\run_fluent.py
+```
+
+#### Method B: Direct Run
+```bash
+python src\main_fluent.py
+```
+
+### 3. Initial Configuration
+
+1. **Set Photoshop Path**
+   - Click "Browse..." button
+   - Select Photoshop.exe (usually at `C:\Program Files\Adobe\Adobe Photoshop 2025\Photoshop.exe`)
+
+2. **Refresh Script List**
+   - Click "Refresh" button
+   - System will automatically scan `scripts/` directory and subdirectories
+
+3. **Add Files**
+   - Click "Add File" to select PSD files
+   - Or click "Add Folder" to batch add
+
+4. **Start Processing**
+   - Select the script to execute
+   - Click "Start Processing" button
+
+## 📁 Project Structure
+
+```
+PSD Batch Processor/
+├── src/
+│   ├── app/
+│   │   ├── config/
+│   │   │   └── settings.py              # Configuration management
+│   │   ├── core/
+│   │   │   ├── processor.py             # Batch processing logic
+│   │   │   ├── photoshop_controller.py  # Photoshop COM control
+│   │   │   └── script_args.py           # Script parameter passing
+│   │   ├── models/
+│   │   │   └── file_item.py             # File data model
+│   │   └── ui/
+│   │       ├── main_window.py           # CustomTkinter main window
+│   │       └── fluent_main_window.py    # PyQt-Fluent-Widgets main window
+│   ├── utils/
+│   │   └── logger.py                    # Logging system
+│   ├── main.py                          # CustomTkinter startup script
+│   └── main_fluent.py                   # PyQt-Fluent-Widgets startup script
+├── scripts/
+│   ├── production/                      # Production scripts
+│   ├── templates/                       # Template scripts
+│   └── examples/                        # Example scripts
+├── tools/
+│   ├── install_fluent.py                # PyQt-Fluent-Widgets installation script
+│   ├── run_fluent.py                    # PyQt-Fluent-Widgets launch script
+│   ├── build.bat                        # Build tool (CustomTkinter)
+│   └── build.py                         # Build tool (Python)
+├── docs/
+│   ├── FLUENT_VERSION_GUIDE.md          # PyQt-Fluent-Widgets guide
+│   ├── PACKAGING_GUIDE.md               # Packaging guide
+│   └── guides/                          # Documentation
+├── tests/
+│   └── test_fluent_widgets.py           # PyQt-Fluent-Widgets test
+├── requirements.txt                     # Dependencies list
+├── README.md                            # Main README
+└── README_FLUENT.md                     # This document
+```
+
+## 🖼️ Software Screenshots
+
+### Home Interface
+![Home Interface](pic/home.jpg)
+
+### Script Management
+![Script Management](pic/scripts.jpg)
+
+### Log View
+![Log View](pic/log.jpg)
+
+### Settings Interface
+![Settings Interface](pic/settings.jpg)
+
+## 🔧 User Guide
+
+### Adding Files
+
+#### Add Single File
+1. Click "Add File" button
+2. Select PSD files (multiple selection supported)
+3. Files will appear in the file list
+
+#### Add Folder
+1. Click "Add Folder" button
+2. Select folder containing PSD files
+3. System will recursively scan all subdirectories
+4. All PSD files will be added to the list
+
+### Selecting Script
+
+1. **Refresh Script List**
+   - Click "Refresh" button
+   - System scans `scripts/` directory and subdirectories
+   - Displays all `.jsx` scripts
+
+2. **Select Script**
+   - Select script from dropdown
+   - Script path will be displayed
+   - Supports scripts in subdirectories (displayed as `subdirectory/script_name`)
+
+### Start Processing
+
+1. **Verify Configuration**
+   - ✅ Photoshop path is set
+   - ✅ Script is selected
+   - ✅ Files are added
+
+2. **Start Processing**
+   - Click "Start Processing" button
+   - View progress bar and logs
+   - Wait for completion
+
+3. **Processing Results**
+   - Success: Green prompt, file status becomes "Completed"
+   - Failure: Red prompt, file status becomes "Failed"
+   - Backup: Automatic timestamped backup folder creation
+
+### Viewing Logs
+
+#### Preview Logs (Home Page)
+- Shows recent log messages
+- Auto-scrolls to latest messages
+- Limits displayed lines for performance
+
+#### Complete Logs (Log Page)
+- View all historical logs
+- Clear or save logs to file
+- Support for search and copy
+
+## ⚙️ Configuration
+
+### Application Configuration
+
+Configuration file location:
+- **Development**: `src/config.json`
+- **Packaged**: `%APPDATA%\PSDBatchProcessor\config.json`
+
+Configuration items:
+```json
+{
+  "photoshop_path": "Photoshop.exe full path",
+  "script_dir": "Script directory path (relative or absolute)",
+  "backup_dir": "Backup directory path (relative or absolute)",
+  "last_script": "Last used script name",
+  "max_workers": "Concurrent processing count (1-8)",
+  "theme": "Theme (dark/light)",
+  "include_subfolders": "Whether to scan subdirectories"
+}
+```
+
+### Theme Configuration
+
+Two themes supported:
+- **Dark Theme** (`dark`): Suitable for low-light environments, eye protection
+- **Light Theme** (`light`): Suitable for bright environments
+
+Theme switching takes effect immediately and saves to configuration file.
+
+## 📊 Performance Optimization
+
+### Concurrent Processing
+- **Concurrency Setting**: 1-8 files processed simultaneously
+- **Recommended Settings**:
+  - CPU < 4 cores: 1-2
+  - CPU 4-8 cores: 2-4
+  - CPU > 8 cores: 4-8
+
+### Memory Management
+- **File List Limit**: No hard limit, but recommend not exceeding 1000 files
+- **Log Cache**: Automatically limits lines to avoid memory overflow
+- **Temporary Files**: Automatically cleaned up after processing
+
+### Response Speed
+- **UI Response**: Use QThread to avoid interface freezing
+- **Real-time Updates**: Use signal-slot mechanism for thread safety
+- **Scroll Optimization**: Auto-scroll logs to avoid performance issues
+
+## 🔍 Troubleshooting
+
+### Common Issues
+
+#### 1. Cannot Import PyQt-Fluent-Widgets
+```bash
+# Reinstall
+pip uninstall PyQt-Fluent-Widgets PyQt5
+pip install PyQt-Fluent-Widgets PyQt5
+```
+
+#### 2. Interface Display Issues
+```bash
+# Check Python version
+python --version  # Requires 3.8+
+
+# Reinstall dependencies
+pip install --upgrade PyQt5 PyQt-Fluent-Widgets
+```
+
+#### 3. Photoshop Cannot Start
+- Check if path is correct
+- Ensure Photoshop is installed
+- Run application with administrator privileges
+
+#### 4. Scripts Cannot Be Found
+- Click "Refresh" button to rescan
+- Check script directory settings
+- Ensure script extension is `.jsx`
+
+#### 5. Slow Processing Speed
+- Reduce concurrency setting
+- Check system resource usage
+- Ensure Photoshop is responding normally
+
+## 📦 Packaging & Release
+
+### Automatic Build (Recommended)
+
+Project uses GitHub Actions for automatic build and release:
+
+- **Trigger**: Automatically builds when pushing `v*` tags
+- **Build Content**: Windowed, Console, OneFile three versions
+- **Release Location**: https://github.com/yancongya/PSD-Batch-Processor/releases
+- **Version Control**: Based on Git tags
+
+**Example**:
+```bash
+# Create new version tag and push to trigger automatic build
+git tag v1.0.1
+git push origin v1.0.1
+```
+
+### Manual Build
+
+#### Using One-click Build Script (Simplest)
+
+**Windows Users**:
+```batch
+# Double-click to run
+tools\build.bat
+```
+
+**Cross-platform**:
+```bash
+# Run Python script
+python tools/build_all.py
+```
+
+#### Manual Packaging with PyInstaller
+
+```bash
+# Install PyInstaller
+pip install pyinstaller
+
+# Package PyQt-Fluent-Widgets version
+pyinstaller ^
+    --name="PSDBatchProcessor_Fluent" ^
+    --noconsole ^
+    --onefile ^
+    --add-data="docs/guides/START_HERE.txt;docs/guides" ^
+    --add-data="docs/guides/QUICK_REFERENCE.txt;docs/guides" ^
+    --add-data="scripts/production/*.jsx;scripts/production" ^
+    --add-data="scripts/templates/*.jsx;scripts/templates" ^
+    --add-data="scripts/examples/*.jsx;scripts/examples" ^
+    --hidden-import=win32com ^
+    --hidden-import=pythoncom ^
+    --hidden-import=PIL ^
+    --hidden-import=PyQt5 ^
+    --hidden-import=PyQtFluentWidgets ^
+    src/main_fluent.py
+```
+
+For detailed packaging instructions, see [docs/PACKAGING_GUIDE.md](docs/PACKAGING_GUIDE.md).
+
+## 🤝 Version Comparison
+
+| Feature | CustomTkinter Version | PyQt-Fluent-Widgets Version |
+|---------|---------------------|----------------------------|
+| **Interface Style** | Modern, Material Design-like | Fluent Design (Windows 11) |
+| **Navigation** | Single-page layout | Multi-page navigation (sidebar) |
+| **Control Richness** | Basic controls | Rich advanced controls |
+| **Theme Support** | Dark/Light themes | Complete Fluent theme system |
+| **Responsive Design** | Good | Excellent |
+| **Learning Curve** | Simple | Medium |
+| **Dependency Size** | Smaller (~50MB) | Larger (~80MB) |
+| **Startup Speed** | Fast (~1-2s) | Medium (~2-3s) |
+| **System Integration** | Average | Excellent (Windows) |
+
+## 🎯 Selection Guide
+
+### Choose PyQt-Fluent-Widgets Version if you:
+- ✅ Pursue modern, beautiful interface
+- ✅ Like Windows 11 style
+- ✅ Need rich controls and interactions
+- ✅ Value user experience
+- ✅ Don't mind slightly larger dependencies
+
+### Choose CustomTkinter Version if you:
+- ✅ Need lightweight application
+- ✅ Pursue fast startup
+- ✅ Prefer simple interface
+- ✅ Need cross-platform consistency
+- ✅ Want smaller dependency packages
+
+## 📚 Learning Resources
+
+### PyQt-Fluent-Widgets
+- **GitHub**: https://github.com/zhiyiYo/PyQt-Fluent-Widgets
+- **Documentation**: https://pyqt-fluent-widgets.readthedocs.io/
+- **Examples**: https://github.com/zhiyiYo/PyQt-Fluent-Widgets/tree/main/examples
+
+### PyQt5
+- **Official Documentation**: https://www.riverbankcomputing.com/static/Docs/PyQt5/
+- **Tutorials**: https://www.learnpyqt.com/
+
+## 🔗 Related Links
+
+- **Official Website**: https://yancongya.github.io/PSD-Batch-Processor/
+- **Project Home**: [README.md](README.md)
+- **GitHub Repository**: https://github.com/yancongya/PSD-Batch-Processor
+- **Release Page**: https://github.com/yancongya/PSD-Batch-Processor/releases
+- **Packaging Guide**: [docs/PACKAGING_GUIDE.md](docs/PACKAGING_GUIDE.md)
+- **Quick Start**: [docs/guides/START_HERE.txt](docs/guides/START_HERE.txt)
+- **Reference Manual**: [docs/guides/QUICK_REFERENCE.txt](docs/guides/QUICK_REFERENCE.txt)
+
+## 📝 Changelog
+
+### v1.0.0 (2026-01-24)
+- ✨ First release of PyQt-Fluent-Widgets version
+- ✨ Implemented multi-page navigation interface
+- ✨ Added card-based layout design
+- ✨ Integrated existing backend processing logic
+- ✨ Implemented real-time logging and progress display
+- ✨ Added theme switching functionality
+- ✨ Optimized responsive design
+
+## 🤝 Contributing
+
+Issues and Pull Requests are welcome!
+
+## 📄 License
+
+MIT License - See [LICENSE](LICENSE) file for details
+
+## 🙏 Acknowledgments
+
+- **PyQt-Fluent-Widgets**: Provides modern UI components
+- **PyQt5**: Provides Python Qt bindings
+- **Photoshop**: Provides powerful image processing capabilities
+
+---
+
+**Version**: 1.0.0
+**Last Updated**: 2026-01-24
+**Status**: ✅ Production Ready
